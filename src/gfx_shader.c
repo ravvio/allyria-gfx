@@ -1,9 +1,9 @@
 #include "../include/gfx/gfx_gl.h"
 #include <stdio.h>
 
-u_int32_t gfx_shader_compile(u_int32_t type, const char *source) {
+u_int32_t gfx_shader_compile(u_int32_t type, const char *source, const int source_lenght) {
   GLCall(u_int32_t id = glCreateShader(type));
-  GLCall(glShaderSource(id, 1, &source, NULL));
+  GLCall(glShaderSource(id, 1, &source, &source_lenght));
   GLCall(glCompileShader(id));
 
   // Error handling
@@ -16,6 +16,7 @@ u_int32_t gfx_shader_compile(u_int32_t type, const char *source) {
     GLCall(glGetShaderInfoLog(id, length, &length, message));
     fprintf(stderr, "[e] failed to compile %s shader\n| %s\n",
             (type == GL_VERTEX_SHADER) ? "vertex" : "fragment", message);
+    fprintf(stderr, "| source: %s\n", source);
     GLCall(glDeleteShader(id));
     return 0;
   }
@@ -41,6 +42,7 @@ u_int32_t gfx_shader_load(u_int32_t type, const char *filepath) {
     fclose(fd);
     return 0;
   }
+
   size_t read = fread(buf, sizeof(char), filesize, fd);
   if (read != filesize) {
     free(buf);
@@ -50,7 +52,7 @@ u_int32_t gfx_shader_load(u_int32_t type, const char *filepath) {
 
   fprintf(stderr, "[i] loaded shader source %s\n", filepath);
 
-  u_int32_t program = gfx_shader_compile(type, buf);
+  u_int32_t program = gfx_shader_compile(type, buf, filesize);
   free(buf);
   fclose(fd);
   return program;
