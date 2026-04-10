@@ -61,7 +61,7 @@ GFX_Mesh3D gfx_mesh3d_create(u_int32_t vertices_count, GFX_Vertex3D *vertices,
   return mesh;
 }
 
-void gfx_mesh3d_destroy(GFX_Mesh3D *mesh) {
+void gfx_mesh3d_destroy(const GFX_Mesh3D *mesh) {
   gfx_vertex_array_destroy(&mesh->_vao);
   gfx_vertex_buffer_destroy(&mesh->_vbo);
   gfx_index_buffer_destroy(&mesh->_ibo);
@@ -83,7 +83,7 @@ GFX_Mesh3D gfx_mesh3d_shape_quad_create(float_t width, float_t height) {
   return gfx_mesh3d_create(4, vertices, 6, indices);
 }
 
-void gfx_mesh3d_draw(GFX_Mesh3D *mesh, GFX_Shader *shader,
+void gfx_mesh3d_draw(const GFX_Mesh3D *mesh, const GFX_Shader *shader,
                      GFX_Transform trasform_model, GFX_Transform trasform_view,
                      GFX_Transform trasform_projection) {
   gfx_shader_bind(shader);

@@ -35,6 +35,8 @@ int main(void) {
     gfx_events_poll();
   }
 
+  gfx_shader_destroy(&shader);
+  gfx_texture2d_destroy(&tex);
   gfx_mesh3d_destroy(&quad);
   gfx_terminate();
   return 0;

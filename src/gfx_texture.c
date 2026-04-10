@@ -52,11 +52,11 @@ GFX_Texture2D gfx_texture2d_load(const char *filename,
   return tex;
 }
 
-void gfx_texture2d_destroy(GFX_Texture2D *texture) {
+void gfx_texture2d_destroy(const GFX_Texture2D *texture) {
   glDeleteTextures(1, &texture->renderer_id);
 }
 
-void gfx_texture2d_bind(GFX_Texture2D *texture) {
+void gfx_texture2d_bind(const GFX_Texture2D *texture) {
   glBindTexture(GL_TEXTURE_2D, texture->renderer_id);
 }
 

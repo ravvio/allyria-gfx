@@ -62,8 +62,8 @@ typedef struct {
 } GFX_VertexBuffer;
 
 GFX_VertexBuffer gfx_vertex_buffer_create(u_int32_t size, const void *data);
-void gfx_vertex_buffer_destroy(GFX_VertexBuffer *vb);
-void gfx_vertex_buffer_bind(GFX_VertexBuffer *vb);
+void gfx_vertex_buffer_destroy(const GFX_VertexBuffer *vb);
+void gfx_vertex_buffer_bind(const GFX_VertexBuffer *vb);
 void gfx_vertex_buffer_unbind();
 
 // Index Buffer
@@ -75,7 +75,7 @@ typedef struct {
 } GFX_IndexBuffer;
 
 GFX_IndexBuffer gfx_index_buffer_create(u_int32_t count, const u_int32_t *data);
-void gfx_index_buffer_destroy(GFX_IndexBuffer *ib);
+void gfx_index_buffer_destroy(const GFX_IndexBuffer *ib);
 void gfx_index_buffer_bind(const GFX_IndexBuffer *ib);
 void gfx_index_buffer_unbind();
 u_int32_t gfx_index_buffer_get_count(const GFX_IndexBuffer *ib);
@@ -96,12 +96,12 @@ typedef struct {
 
 GFX_VertexBuffer gfx_vertex_buffer_create(u_int32_t size, const void *data);
 GFX_VertexLayout gfx_vertex_layout_create();
-void gfx_vertex_layout_destroy(GFX_VertexLayout *layout);
+void gfx_vertex_layout_destroy(const GFX_VertexLayout *layout);
 void gfx_vertex_layout_push_f32(GFX_VertexLayout *layout, u_int32_t count,
                                 GFX_Boolean normalized);
 const GFX_VertexLayoutElement *
 gfx_vertex_layout_get_elements(const GFX_VertexLayout *layout);
-u_int32_t gfx_vertex_layout_get_stride(GFX_VertexLayout *layout);
+u_int32_t gfx_vertex_layout_get_stride(const GFX_VertexLayout *layout);
 
 typedef struct {
   u_int32_t renderer_id;
@@ -111,8 +111,8 @@ GFX_VertexArray gfx_vertex_array_create();
 void gfx_vertex_array_destroy(const GFX_VertexArray *vao);
 void gfx_vertex_array_bind(const GFX_VertexArray *vao);
 void gfx_vertex_array_unbind();
-void gfx_vertex_array_add_buffer(GFX_VertexArray *vao, GFX_VertexBuffer *vb,
-                                 GFX_VertexLayout *layout);
+void gfx_vertex_array_add_buffer(const GFX_VertexArray *vao, const GFX_VertexBuffer *vb,
+                                 const GFX_VertexLayout *layout);
 
 // Shader
 
@@ -167,8 +167,8 @@ GFX_Texture2D gfx_texture2d_load(const char *filename,
                                  enum GFX_TextureType type,
                                  enum GFX_TextureFilter filter,
                                  enum GFX_Wrap wrap);
-void gfx_texture2d_destroy(GFX_Texture2D *texture);
-void gfx_texture2d_bind(GFX_Texture2D *texture);
+void gfx_texture2d_destroy(const GFX_Texture2D *texture);
+void gfx_texture2d_bind(const GFX_Texture2D *texture);
 void gfx_texture2d_unbind();
 
 // Mesh
@@ -197,9 +197,9 @@ typedef struct {
 
 GFX_Mesh3D gfx_mesh3d_create(u_int32_t vertices_count, GFX_Vertex3D *vertices,
                              u_int32_t indices_count, u_int32_t *indices);
-void gfx_mesh3d_destroy(GFX_Mesh3D *mesh);
+void gfx_mesh3d_destroy(const GFX_Mesh3D *mesh);
 GFX_Mesh3D gfx_mesh3d_shape_quad_create(float_t width, float_t height);
-void gfx_mesh3d_draw(GFX_Mesh3D *mesh, GFX_Shader *shader,
+void gfx_mesh3d_draw(const GFX_Mesh3D *mesh, const GFX_Shader *shader,
                      GFX_Transform trasform_model, GFX_Transform trasform_view,
                      GFX_Transform trasform_projection);
 

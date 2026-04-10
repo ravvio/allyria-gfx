@@ -1,4 +1,5 @@
 #include "../include/gfx/gfx_gl.h"
+#include <stdio.h>
 
 u_int32_t gfx_shader_compile(u_int32_t type, const char *source) {
   GLCall(u_int32_t id = glCreateShader(type));
@@ -12,13 +13,13 @@ u_int32_t gfx_shader_compile(u_int32_t type, const char *source) {
     int length;
     GLCall(glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length));
     char *message = (char *)alloca(length * sizeof(char));
-
     GLCall(glGetShaderInfoLog(id, length, &length, message));
     fprintf(stderr, "[e] failed to compile %s shader\n| %s\n",
             (type == GL_VERTEX_SHADER) ? "vertex" : "fragment", message);
     GLCall(glDeleteShader(id));
     return 0;
   }
+  fprintf(stderr, "[i] shader compiled\n");
   return id;
 }
 
@@ -42,12 +43,12 @@ u_int32_t gfx_shader_load(u_int32_t type, const char *filepath) {
   }
   size_t read = fread(buf, sizeof(char), filesize, fd);
   if (read != filesize) {
-    fclose(fd);
     free(buf);
+    fclose(fd);
     return 0;
   }
 
-  fprintf(stderr, "[i] loaded shader %s\n", filepath);
+  fprintf(stderr, "[i] loaded shader source %s\n", filepath);
 
   u_int32_t program = gfx_shader_compile(type, buf);
   free(buf);

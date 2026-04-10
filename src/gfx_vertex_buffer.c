@@ -14,12 +14,12 @@ GFX_VertexBuffer gfx_vertex_buffer_create(u_int32_t size, const void *data) {
 }
 
 // Destroy a vertex buffer
-void gfx_vertex_buffer_destroy(GFX_VertexBuffer *vb) {
+void gfx_vertex_buffer_destroy(const GFX_VertexBuffer *vb) {
   GLCall(glDeleteBuffers(1, &vb->renderer_id));
 }
 
 // Bind a vertex buffer
-void gfx_vertex_buffer_bind(GFX_VertexBuffer *vb) {
+void gfx_vertex_buffer_bind(const GFX_VertexBuffer *vb) {
   GLCall(glBindBuffer(GL_ARRAY_BUFFER, vb->renderer_id));
 }
 

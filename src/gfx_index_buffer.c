@@ -21,7 +21,7 @@ GFX_IndexBuffer gfx_index_buffer_create(u_int32_t count,
 }
 
 // Destroy a index buffer
-void gfx_index_buffer_destroy(GFX_IndexBuffer *ib) {
+void gfx_index_buffer_destroy(const GFX_IndexBuffer *ib) {
   glDeleteBuffers(1, &ib->renderer_id);
 }
 

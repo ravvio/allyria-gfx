@@ -10,7 +10,7 @@ GFX_VertexLayout gfx_vertex_layout_create() {
   return layout;
 }
 
-void gfx_vertex_layout_destroy(GFX_VertexLayout *layout) {
+void gfx_vertex_layout_destroy(const GFX_VertexLayout *layout) {
   free(layout->elements);
 }
 
@@ -35,7 +35,7 @@ gfx_vertex_layout_get_elements(const GFX_VertexLayout *layout) {
   return layout->elements;
 }
 
-u_int32_t gfx_vertex_layout_get_stride(GFX_VertexLayout *layout) {
+u_int32_t gfx_vertex_layout_get_stride(const GFX_VertexLayout *layout) {
   return layout->stride;
 }
 
@@ -58,8 +58,8 @@ void gfx_vertex_array_bind(const GFX_VertexArray *vao) {
 
 void gfx_vertex_array_unbind() { GLCall(glBindVertexArray(0)); }
 
-void gfx_vertex_array_add_buffer(GFX_VertexArray *vao, GFX_VertexBuffer *vb,
-                                 GFX_VertexLayout *layout) {
+void gfx_vertex_array_add_buffer(const GFX_VertexArray *vao, const GFX_VertexBuffer *vb,
+                                 const GFX_VertexLayout *layout) {
   gfx_vertex_array_bind(vao);
   gfx_vertex_buffer_bind(vb);
 
