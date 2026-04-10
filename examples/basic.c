@@ -1,6 +1,4 @@
 #include "../include/gfx/gfx.h"
-#include <OpenGL/gl.h>
-#include <stdio.h>
 
 int main(void) {
     if (gfx_init() != GFX_ERR_OK) {

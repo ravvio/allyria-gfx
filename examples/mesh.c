@@ -1,5 +1,5 @@
 #include "../include/gfx/gfx.h"
-#include <OpenGL/gl.h>
+#include <assert.h>
 #include <stdio.h>
 
 int main(void) {
@@ -9,6 +9,7 @@ int main(void) {
   }
 
   GFX_Window *win = gfx_window_init(800, 600, "Mesh Example");
+  assert(win != NULL);
 
   GFX_Mesh3D quad = gfx_mesh3d_shape_quad_create(1.0, 1.0);
   GFX_Shader shader = gfx_shader_create("./assets/shaders/shape_3d.vert",

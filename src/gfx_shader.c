@@ -14,8 +14,8 @@ u_int32_t gfx_shader_compile(u_int32_t type, const char *source) {
     char *message = (char *)alloca(length * sizeof(char));
 
     GLCall(glGetShaderInfoLog(id, length, &length, message));
-    fprintf(stderr, "[e] failed to compile %s Shader:\n%s\n",
-            (type == GL_VERTEX_SHADER) ? "Vertex" : "Fragment", message);
+    fprintf(stderr, "[e] failed to compile %s shader\n| %s\n",
+            (type == GL_VERTEX_SHADER) ? "vertex" : "fragment", message);
     GLCall(glDeleteShader(id));
     return 0;
   }
