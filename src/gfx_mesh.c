@@ -22,12 +22,12 @@ GFX_VertexLayout *gfx_vertex3d_layout() {
 
 GFX_Vertex3D gfx_vertex3d_create(float position_x, float position_y,
                                  float position_z, float normal_x,
-                                 float normal_y, float normal_z,
-                                 float uv_x, float uv_y) {
+                                 float normal_y, float normal_z, float uv_x,
+                                 float uv_y) {
   GFX_Vertex3D vertex = {
-    .position = GLM_VEC3_ZERO_INIT,
-    .normal = GLM_VEC3_ZERO_INIT,
-    .uv = GLM_VEC2_ZERO_INIT,
+      .position = GLM_VEC3_ZERO_INIT,
+      .normal = GLM_VEC3_ZERO_INIT,
+      .uv = GLM_VEC2_ZERO_INIT,
   };
 
   vec3 position = {position_x, position_y, position_z};
@@ -69,22 +69,32 @@ void gfx_mesh3d_destroy(GFX_Mesh3D *mesh) {
 
 GFX_Mesh3D gfx_mesh3d_shape_quad_create(float_t width, float_t height) {
   GFX_Vertex3D vertices[4] = {
-      gfx_vertex3d_create(-width / 2.0, +height / 2.0, 0.0, 0.0, 0.0, -1.0,
-                          0.0, 1.0),
-      gfx_vertex3d_create(+width / 2.0, +height / 2.0, 0.0, 0.0, 0.0, -1.0,
-                          1.0, 1.0),
-      gfx_vertex3d_create(+width / 2.0, -height / 2.0, 0.0, 0.0, 0.0, -1.0,
-                          1.0, 0.0),
-      gfx_vertex3d_create(-width / 2.0, -height / 2.0, 0.0, 0.0, 0.0, -1.0,
-                          0.0, 0.0),
+      gfx_vertex3d_create(-width / 2.0, +height / 2.0, 0.0, 0.0, 0.0, -1.0, 0.0,
+                          1.0),
+      gfx_vertex3d_create(+width / 2.0, +height / 2.0, 0.0, 0.0, 0.0, -1.0, 1.0,
+                          1.0),
+      gfx_vertex3d_create(+width / 2.0, -height / 2.0, 0.0, 0.0, 0.0, -1.0, 1.0,
+                          0.0),
+      gfx_vertex3d_create(-width / 2.0, -height / 2.0, 0.0, 0.0, 0.0, -1.0, 0.0,
+                          0.0),
   };
   u_int32_t indices[6] = {0, 1, 2, 2, 3, 0};
 
   return gfx_mesh3d_create(4, vertices, 6, indices);
 }
 
-void gfx_mesh3d_draw(GFX_Mesh3D *mesh, GFX_Shader *shader) {
+void gfx_mesh3d_draw(GFX_Mesh3D *mesh, GFX_Shader *shader,
+                     GFX_Transform trasform_model, GFX_Transform trasform_view,
+                     GFX_Transform trasform_projection) {
   gfx_shader_bind(shader);
+
+  gfx_shader_uniform_set_mat4(shader, "t_model", false,
+                              trasform_model);
+  gfx_shader_uniform_set_mat4(shader, "t_view", false,
+                              trasform_view);
+  gfx_shader_uniform_set_mat4(shader, "t_projection", false,
+                              trasform_projection);
+
   gfx_vertex_array_bind(&mesh->_vao);
   gfx_index_buffer_bind(&mesh->_ibo);
   glDrawElements(GL_TRIANGLES, mesh->indices_count, GL_UNSIGNED_INT, NULL);

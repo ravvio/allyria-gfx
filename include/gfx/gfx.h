@@ -51,6 +51,10 @@ void gfx_buffers_clear();
 void gfx_color_buffer_set_clear(GFX_Color_RGBA color);
 void gfx_depth_buffer_set_clear(float_t depth);
 
+// Transform
+
+typedef mat4 GFX_Transform;
+
 // Vertex Buffer
 
 typedef struct {
@@ -176,9 +180,9 @@ typedef struct {
 } GFX_Vertex3D;
 
 GFX_Vertex3D gfx_vertex3d_create(float position_x, float position_y,
-                               float position_z, float normal_x, float normal_y,
-                               float normal_z, float uv_x,
-                               float uv_y);
+                                 float position_z, float normal_x,
+                                 float normal_y, float normal_z, float uv_x,
+                                 float uv_y);
 
 typedef struct {
   GFX_Vertex3D *vertices;
@@ -195,7 +199,9 @@ GFX_Mesh3D gfx_mesh3d_create(u_int32_t vertices_count, GFX_Vertex3D *vertices,
                              u_int32_t indices_count, u_int32_t *indices);
 void gfx_mesh3d_destroy(GFX_Mesh3D *mesh);
 GFX_Mesh3D gfx_mesh3d_shape_quad_create(float_t width, float_t height);
-void gfx_mesh3d_draw(GFX_Mesh3D *mesh, GFX_Shader *shader);
+void gfx_mesh3d_draw(GFX_Mesh3D *mesh, GFX_Shader *shader,
+                     GFX_Transform trasform_model, GFX_Transform trasform_view,
+                     GFX_Transform trasform_projection);
 
 // Sprite
 

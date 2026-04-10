@@ -1,5 +1,6 @@
 
-## External
+Using:
+- opengl (with glad)
 - stb_image
 - cglm
 
