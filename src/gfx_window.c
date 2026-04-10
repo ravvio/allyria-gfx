@@ -1,74 +1,86 @@
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <stdio.h>
-
-#include "../include/gfx/gfx.h"
+#include "../include/gfx/gfx_gl.h"
 
 typedef GLFWwindow _GFX_Window;
 
-GFX_Window *gfx_window_create(int w, int h, char* window_name) {
-  _GFX_Window *window;
-
+// Initialize the gfx library
+GFX_Error gfx_init() {
   // Initialize GLFW
-  if (!glfwInit()) {
-    return NULL;
+  if (glfwInit() == GLFW_FALSE) {
+    gfx_glfw_errors_check();
+    return GFX_ERR_GLFW;
   }
+  fprintf(stdout, "[i] status: Using GLFW %s\n", glfwGetVersionString());
 
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  return GFX_ERR_OK;
+}
+
+// Terminate the gfx library
+void gfx_terminate() { glfwTerminate(); }
+
+GFX_Window *gfx_window_init(int w, int h, char *window_name) {
+  // Hint
+  GLFWCall(glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3));
+  GLFWCall(glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3));
+  GLFWCall(glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE));
 
   // Create a window
-  window = glfwCreateWindow(800, 600, window_name, NULL, NULL);
+  GLFWCall(GFX_Window *window = glfwCreateWindow(800, 600, window_name, NULL, NULL));
   if (!window) {
-    glfwTerminate();
     return NULL;
   }
   // Make window's the current context
-  glfwMakeContextCurrent(window);
+  GLFWCall(glfwMakeContextCurrent(window));
 
-  // Initialie GLEW
-  GLenum err = glewInit();
-
-  if (err != GLEW_OK && err != 4) {
-    fprintf(stderr, "[e] error: %s, code: %d\n", glewGetErrorString(err), err);
-    glfwTerminate();
-    return NULL;
-  }
-  fprintf(stdout, "[i] status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
-
-  // Set clear color
-  glClearColor(0.1, 0.25, 0.35, 1.0);
+  // Load GL on the current context
+  int version = gladLoadGL(glfwGetProcAddress);
+  fprintf(stderr, "[i] status: Using GL %d.%d\n", GLAD_VERSION_MAJOR(version),
+          GLAD_VERSION_MINOR(version));
 
   return window;
 }
 
 // Get the size of the window
 void gfx_window_size(GFX_Window *window, int *w, int *h) {
-  glfwGetWindowSize((_GFX_Window*)window, w, h);
+  GLFWCall(glfwGetWindowSize((_GFX_Window *)window, w, h));
 }
 
 // Set the size of the window
 void gfx_window_size_set(GFX_Window *window, int w, int h) {
-  glfwSetWindowSize((_GFX_Window*)window, w, h);
+  GLFWCall(glfwSetWindowSize((_GFX_Window *)window, w, h));
 }
 
 // Should the window be closed
 int gfx_window_should_close(GFX_Window *window) {
-  return glfwWindowShouldClose((_GFX_Window*)window);
+  GLFWCall(int result = glfwWindowShouldClose((_GFX_Window *)window));
+  return result;
 }
 
 // Swap front and back buffers
-void gfx_window_swap(GFX_Window *window) {
-  glfwSwapBuffers((_GFX_Window*)window);
+void gfx_window_swap_buffers(GFX_Window *window) {
+  GLFWCall(glfwSwapBuffers((_GFX_Window *)window));
 }
 
-// Poll for and process events
-void gfx_events_poll() {
-  glfwPollEvents();
+// Clear the color buffer
+void gfx_color_buffer_clear() {
+  GLCall(glClear(GL_COLOR_BUFFER_BIT));
 }
 
-// Terminate the process
-void gfx_terminate() {
-  glfwTerminate();
+// Clear the depth buffer
+void gfx_depth_buffer_clear() {
+  GLCall(glClear(GL_DEPTH_BUFFER_BIT));
+}
+
+// Clear all buffers
+void gfx_buffers_clear() {
+  GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+}
+
+// Set the color buffer clear
+void gfx_color_buffer_set_clear(GFX_Color_RGBA color) {
+  GLCall(glClearColor(color[0], color[1], color[2], color[3]));
+}
+
+// Set the depth buffer clear color
+void gfx_depth_buffer_set_clear(float_t depth) {
+  GLCall(glClearDepth(depth));
 }

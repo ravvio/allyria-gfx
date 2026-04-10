@@ -1,7 +1,4 @@
-#include <sys/types.h>
-#include "../external/cglm/cglm.h"
-
-#include "../include/gfx/gfx.h"
+#include "../include/gfx/gfx_gl.h"
 
 void gfx_sprite_create() {
   GFX_Shader shader =
@@ -15,7 +12,7 @@ GFX_SpriteRenderer gfx_sprite_renderer_create() {
   };
   GFX_VertexBuffer vbo = gfx_vertex_buffer_create(sizeof(vertices), vertices);
   GFX_VertexLayout layout = gfx_vertex_layout_create();
-  gfx_vertex_layout_push_f32(&layout, 4);
+  gfx_vertex_layout_push_f32(&layout, 4, false);
 
   GFX_VertexArray vao = gfx_vertex_array_create();
   gfx_vertex_array_add_buffer(&vao, &vbo, &layout);
@@ -43,5 +40,5 @@ void gfx_sprite_renderer_draw(
   gfx_shader_uniform_set_mat4(sprite->shader, "model", 0, model);
 
   glActiveTexture(GL_TEXTURE0);
-  texture.bind();
+  gfx_texture2D_bind(sprite->texture);
 }

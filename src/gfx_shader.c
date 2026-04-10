@@ -1,12 +1,4 @@
-#include <GL/glew.h>
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/_types/_u_int32_t.h>
-#include <sys/types.h>
-
-#include "../include/gfx/gfx.h"
-#include "../external/cglm/cglm.h"
+#include "../include/gfx/gfx_gl.h"
 
 u_int32_t gfx_shader_compile(u_int32_t type, const char *source) {
   GLCall(u_int32_t id = glCreateShader(type));
@@ -90,6 +82,7 @@ GFX_Shader gfx_shader_create(const char *vert_filepath,
       .vert_filepath = vert_filepath,
       .frag_filepath = frag_filepath,
   };
+  assert(shader.renderer_id != 0);
   return shader;
 }
 
@@ -101,7 +94,9 @@ void gfx_shader_bind(const GFX_Shader *shader) {
   GLCall(glUseProgram(shader->renderer_id));
 }
 
-void gfx_shader_unbind() { GLCall(glUseProgram(0)); }
+void gfx_shader_unbind() {
+  GLCall(glUseProgram(0);)
+}
 
 u_int32_t gfx_shader_uniform_get_location(const GFX_Shader *shader,
                                           const char *name) {
@@ -110,13 +105,15 @@ u_int32_t gfx_shader_uniform_get_location(const GFX_Shader *shader,
 }
 
 void gfx_shader_uniform_set_mat4(const GFX_Shader *shader, const char *name, int transpose, mat4 value) {
+  gfx_shader_bind(shader);
   u_int32_t location = gfx_shader_uniform_get_location(shader, name);
   assert(location != -1);
-  GLCall(glUniformMatrix4fv(location, 1, transpose, value))
+  GLCall(glUniformMatrix4fv(location, 1, transpose, *value));
 }
 
 void gfx_shader_uniform_set_2f(const GFX_Shader *shader, const char *name,
                                float v0, float v1) {
+  gfx_shader_bind(shader);
   u_int32_t location = gfx_shader_uniform_get_location(shader, name);
   assert(location != -1);
   GLCall(glUniform2f(location, v0, v1));

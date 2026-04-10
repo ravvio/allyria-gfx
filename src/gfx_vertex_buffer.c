@@ -1,7 +1,4 @@
-#include <sys/_types/_u_int32_t.h>
-#include <sys/types.h>
-
-#include "../include/gfx/gfx.h"
+#include "../include/gfx/gfx_gl.h"
 
 // Create and bind a vertex buffer
 GFX_VertexBuffer gfx_vertex_buffer_create(u_int32_t size, const void *data) {

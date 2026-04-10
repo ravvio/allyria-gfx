@@ -1,8 +1,4 @@
-#include <assert.h>
-#include <stdlib.h>
-#include <sys/types.h>
-
-#include "../include/gfx/gfx.h"
+#include "../include/gfx/gfx_gl.h"
 
 GFX_VertexLayout gfx_vertex_layout_create() {
   GFX_VertexLayoutElement *elements = {};
@@ -18,7 +14,7 @@ void gfx_vertex_layout_destroy(GFX_VertexLayout *layout) {
   free(layout->elements);
 }
 
-void gfx_vertex_layout_push_f32(GFX_VertexLayout *layout, u_int32_t count) {
+void gfx_vertex_layout_push_f32(GFX_VertexLayout *layout, u_int32_t count, GFX_Boolean normalized) {
   // Increase size
   layout->count += 1;
   layout->elements = realloc(layout->elements,
@@ -27,11 +23,11 @@ void gfx_vertex_layout_push_f32(GFX_VertexLayout *layout, u_int32_t count) {
   GFX_VertexLayoutElement el = {
       .count = count,
       .type = GL_FLOAT,
-      .normalized = GL_FALSE,
+      .normalized = normalized,
   };
   layout->elements[layout->count - 1] = el;
   // Increase stride
-  layout->stride += count * gfx_gltype_get_size(GL_FLOAT);
+  layout->stride += count * gfx_gl_type_get_size(GL_FLOAT);
 }
 
 const GFX_VertexLayoutElement *
@@ -73,6 +69,6 @@ void gfx_vertex_array_add_buffer(GFX_VertexArray *vao, GFX_VertexBuffer *vb,
     GLCall(glVertexAttribPointer(i, el.count, el.type, el.normalized,
                                  layout->stride, (const void *)offset));
     GLCall(glEnableVertexAttribArray(i));
-    offset += el.count * gfx_gltype_get_size(el.type);
+    offset += el.count * gfx_gl_type_get_size(el.type);
   }
 }
