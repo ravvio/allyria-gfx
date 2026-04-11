@@ -49,9 +49,7 @@ set(GFXSOURCES
     ./src/gfx_glfw.c
     ./src/gfx_window.c
     ./src/gfx_events.c
-    ./src/gfx_vertex_buffer.c
-    ./src/gfx_index_buffer.c
-    ./src/gfx_vertex_array.c
+    ./src/gfx_buffers.c
     ./src/gfx_shader.c
     ./src/gfx_texture.c
     ./src/gfx_mesh.c

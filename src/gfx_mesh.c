@@ -1,23 +1,23 @@
 #include "../include/gfx/gfx_gl.h"
 
-static GFX_Boolean _gfx_vertex3d_layout_init = GFX_FALSE;
-static GFX_VertexLayout _gfx_vertex3d_layout;
+static GFX_Boolean __gfx_vertex3d_layout_init = GFX_FALSE;
+static GFX_VertexLayout __gfx_vertex3d_layout;
 
-GFX_VertexLayout *gfx_vertex3d_layout() {
-  if (_gfx_vertex3d_layout_init == GFX_TRUE) {
-    return &_gfx_vertex3d_layout;
+GFX_VertexLayout *_gfx_vertex3d_layout() {
+  if (__gfx_vertex3d_layout_init == GFX_TRUE) {
+    return &__gfx_vertex3d_layout;
   }
 
-  _gfx_vertex3d_layout = gfx_vertex_layout_create();
+  __gfx_vertex3d_layout = gfx_vertex_layout_create();
   // Position
-  gfx_vertex_layout_push_f32(&_gfx_vertex3d_layout, 3, false);
+  gfx_vertex_layout_push_f32(&__gfx_vertex3d_layout, 3, false);
   // Normal
-  gfx_vertex_layout_push_f32(&_gfx_vertex3d_layout, 3, false);
+  gfx_vertex_layout_push_f32(&__gfx_vertex3d_layout, 3, false);
   // UV
-  gfx_vertex_layout_push_f32(&_gfx_vertex3d_layout, 2, false);
+  gfx_vertex_layout_push_f32(&__gfx_vertex3d_layout, 2, false);
 
   fprintf(stderr, "[i] vertex3D layout initialized\n");
-  return &_gfx_vertex3d_layout;
+  return &__gfx_vertex3d_layout;
 }
 
 GFX_Vertex3D gfx_vertex3d_create(float position_x, float position_y,
@@ -47,13 +47,11 @@ GFX_Mesh3D gfx_mesh3d_create(u_int32_t vertices_count, GFX_Vertex3D *vertices,
       gfx_vertex_buffer_create(vertices_count * sizeof(GFX_Vertex3D), vertices);
   GFX_IndexBuffer ibo = gfx_index_buffer_create(indices_count, indices);
 
-  gfx_vertex_array_add_buffer(&vao, &vbo, gfx_vertex3d_layout());
+  gfx_vertex_array_add_buffer(&vao, &vbo, _gfx_vertex3d_layout());
 
   GFX_Mesh3D mesh = {
       .vertices = vertices,
-      .vertices_count = vertices_count,
       .indices = indices,
-      .indices_count = indices_count,
       ._vao = vao,
       ._vbo = vbo,
       ._ibo = ibo,
@@ -65,6 +63,21 @@ void gfx_mesh3d_destroy(const GFX_Mesh3D *mesh) {
   gfx_vertex_array_destroy(&mesh->_vao);
   gfx_vertex_buffer_destroy(&mesh->_vbo);
   gfx_index_buffer_destroy(&mesh->_ibo);
+}
+
+void gfx_mesh3d_draw(const GFX_Mesh3D *mesh, const GFX_Shader *shader,
+                     GFX_Transform trasform_model, GFX_Transform trasform_view,
+                     GFX_Transform trasform_projection) {
+  gfx_shader_bind(shader);
+
+  gfx_shader_uniform_set_mat4(shader, "t_model", false, trasform_model);
+  gfx_shader_uniform_set_mat4(shader, "t_view", false, trasform_view);
+  gfx_shader_uniform_set_mat4(shader, "t_projection", false,
+                              trasform_projection);
+
+  gfx_vertex_array_bind(&mesh->_vao);
+  gfx_index_buffer_bind(&mesh->_ibo);
+  glDrawElements(GL_TRIANGLES, mesh->_ibo.count, GL_UNSIGNED_INT, NULL);
 }
 
 GFX_Mesh3D gfx_mesh3d_shape_quad_create(float_t width, float_t height) {
@@ -83,19 +96,55 @@ GFX_Mesh3D gfx_mesh3d_shape_quad_create(float_t width, float_t height) {
   return gfx_mesh3d_create(4, vertices, 6, indices);
 }
 
-void gfx_mesh3d_draw(const GFX_Mesh3D *mesh, const GFX_Shader *shader,
-                     GFX_Transform trasform_model, GFX_Transform trasform_view,
-                     GFX_Transform trasform_projection) {
-  gfx_shader_bind(shader);
+GFX_Mesh3D gfx_mesh3d_shape_cuboid_create(float_t width, float_t height,
+                                          float_t depth) {
+  GFX_Vertex3D vertices[24] = {
+      // front
+      gfx_vertex3d_create(-width / 2.0, +height / 2.0, -depth / 2.0, 0.0, 0.0, -1.0, 0.0, 1.0),
+      gfx_vertex3d_create(+width / 2.0, +height / 2.0, -depth / 2.0, 0.0, 0.0, -1.0, 1.0, 1.0),
+      gfx_vertex3d_create(-width / 2.0, -height / 2.0, -depth / 2.0, 0.0, 0.0, -1.0, 0.0, 0.0),
+      gfx_vertex3d_create(+width / 2.0, -height / 2.0, -depth / 2.0, 0.0, 0.0, -1.0, 0.0, 1.0),
+      // right
+      gfx_vertex3d_create(+width / 2.0, +height / 2.0, -depth / 2.0, +1.0, 0.0, 0.0, 0.0, 1.0),
+      gfx_vertex3d_create(+width / 2.0, +height / 2.0, +depth / 2.0, +1.0, 0.0, 0.0, 1.0, 1.0),
+      gfx_vertex3d_create(+width / 2.0, -height / 2.0, -depth / 2.0, +1.0, 0.0, 0.0, 0.0, 0.0),
+      gfx_vertex3d_create(+width / 2.0, -height / 2.0, +depth / 2.0, +1.0, 0.0, 0.0, 0.0, 1.0),
+      // back
+      gfx_vertex3d_create(+width / 2.0, +height / 2.0, +depth / 2.0, 0.0, 0.0, +1.0, 0.0, 1.0),
+      gfx_vertex3d_create(-width / 2.0, +height / 2.0, +depth / 2.0, 0.0, 0.0, +1.0, 1.0, 1.0),
+      gfx_vertex3d_create(+width / 2.0, -height / 2.0, +depth / 2.0, 0.0, 0.0, +1.0, 0.0, 0.0),
+      gfx_vertex3d_create(-width / 2.0, -height / 2.0, +depth / 2.0, 0.0, 0.0, +1.0, 0.0, 1.0),
+      // left
+      gfx_vertex3d_create(-width / 2.0, +height / 2.0, +depth / 2.0, -1.0, 0.0, 0.0, 0.0, 1.0),
+      gfx_vertex3d_create(-width / 2.0, +height / 2.0, -depth / 2.0, -1.0, 0.0, 0.0, 1.0, 1.0),
+      gfx_vertex3d_create(-width / 2.0, -height / 2.0, +depth / 2.0, -1.0, 0.0, 0.0, 0.0, 0.0),
+      gfx_vertex3d_create(-width / 2.0, -height / 2.0, -depth / 2.0, -1.0, 0.0, 0.0, 0.0, 1.0),
+      // top
+      gfx_vertex3d_create(-width / 2.0, +height / 2.0, -depth / 2.0, 0.0, +1.0, 0.0, 0.0, 1.0),
+      gfx_vertex3d_create(+width / 2.0, +height / 2.0, -depth / 2.0, 0.0, +1.0, 0.0, 1.0, 1.0),
+      gfx_vertex3d_create(-width / 2.0, +height / 2.0, +depth / 2.0, 0.0, +1.0, 0.0, 0.0, 0.0),
+      gfx_vertex3d_create(+width / 2.0, +height / 2.0, +depth / 2.0, 0.0, +1.0, 0.0, 0.0, 1.0),
+      // bottom
+      gfx_vertex3d_create(+width / 2.0, -height / 2.0, -depth / 2.0, 0.0, -1.0, 0.0, 0.0, 1.0),
+      gfx_vertex3d_create(-width / 2.0, -height / 2.0, -depth / 2.0, 0.0, -1.0, 0.0, 1.0, 1.0),
+      gfx_vertex3d_create(+width / 2.0, -height / 2.0, +depth / 2.0, 0.0, -1.0, 0.0, 0.0, 0.0),
+      gfx_vertex3d_create(-width / 2.0, -height / 2.0, +depth / 2.0, 0.0, -1.0, 0.0, 0.0, 1.0),
+  };
 
-  gfx_shader_uniform_set_mat4(shader, "t_model", false,
-                              trasform_model);
-  gfx_shader_uniform_set_mat4(shader, "t_view", false,
-                              trasform_view);
-  gfx_shader_uniform_set_mat4(shader, "t_projection", false,
-                              trasform_projection);
+  u_int32_t indices[36] = {
+      // front
+      0, 1, 2, 2, 3, 1,
+      // right
+      4, 5, 6, 6, 7, 5,
+      // back
+      8, 9, 10, 10, 11, 9,
+      // left
+      12, 13, 14, 14, 15, 13,
+      // top
+      16, 17, 18, 18, 19, 17,
+      // bottom
+      20, 21, 22, 22, 23, 21
+ };
 
-  gfx_vertex_array_bind(&mesh->_vao);
-  gfx_index_buffer_bind(&mesh->_ibo);
-  glDrawElements(GL_TRIANGLES, mesh->indices_count, GL_UNSIGNED_INT, NULL);
+  return gfx_mesh3d_create(24, vertices, 36, indices);
 }

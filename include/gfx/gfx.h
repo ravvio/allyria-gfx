@@ -55,7 +55,7 @@ void gfx_depth_buffer_set_clear(float_t depth);
 
 typedef mat4 GFX_Transform;
 
-// Vertex Buffer
+// Vertex Buffer (VBO)
 
 typedef struct {
   u_int32_t renderer_id;
@@ -66,7 +66,7 @@ void gfx_vertex_buffer_destroy(const GFX_VertexBuffer *vb);
 void gfx_vertex_buffer_bind(const GFX_VertexBuffer *vb);
 void gfx_vertex_buffer_unbind();
 
-// Index Buffer
+// Index Buffer (IBO)
 
 typedef struct {
   u_int32_t renderer_id;
@@ -80,7 +80,7 @@ void gfx_index_buffer_bind(const GFX_IndexBuffer *ib);
 void gfx_index_buffer_unbind();
 u_int32_t gfx_index_buffer_get_count(const GFX_IndexBuffer *ib);
 
-// Vertex Layout and Vertex Array
+// Vertex Layout
 
 typedef struct {
   u_int32_t count;
@@ -94,7 +94,6 @@ typedef struct {
   GFX_VertexLayoutElement *elements;
 } GFX_VertexLayout;
 
-GFX_VertexBuffer gfx_vertex_buffer_create(u_int32_t size, const void *data);
 GFX_VertexLayout gfx_vertex_layout_create();
 void gfx_vertex_layout_destroy(const GFX_VertexLayout *layout);
 void gfx_vertex_layout_push_f32(GFX_VertexLayout *layout, u_int32_t count,
@@ -102,6 +101,8 @@ void gfx_vertex_layout_push_f32(GFX_VertexLayout *layout, u_int32_t count,
 const GFX_VertexLayoutElement *
 gfx_vertex_layout_get_elements(const GFX_VertexLayout *layout);
 u_int32_t gfx_vertex_layout_get_stride(const GFX_VertexLayout *layout);
+
+// Vertex Array (VAO)
 
 typedef struct {
   u_int32_t renderer_id;
@@ -186,9 +187,7 @@ GFX_Vertex3D gfx_vertex3d_create(float position_x, float position_y,
 
 typedef struct {
   GFX_Vertex3D *vertices;
-  u_int32_t vertices_count;
   u_int32_t *indices;
-  u_int32_t indices_count;
 
   GFX_VertexArray _vao;
   GFX_VertexBuffer _vbo;
@@ -198,10 +197,12 @@ typedef struct {
 GFX_Mesh3D gfx_mesh3d_create(u_int32_t vertices_count, GFX_Vertex3D *vertices,
                              u_int32_t indices_count, u_int32_t *indices);
 void gfx_mesh3d_destroy(const GFX_Mesh3D *mesh);
-GFX_Mesh3D gfx_mesh3d_shape_quad_create(float_t width, float_t height);
 void gfx_mesh3d_draw(const GFX_Mesh3D *mesh, const GFX_Shader *shader,
                      GFX_Transform trasform_model, GFX_Transform trasform_view,
                      GFX_Transform trasform_projection);
+
+GFX_Mesh3D gfx_mesh3d_shape_quad_create(float_t width, float_t height);
+GFX_Mesh3D gfx_mesh3d_shape_cuboid_create(float_t width, float_t height, float_t depth);
 
 // Sprite
 

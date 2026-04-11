@@ -12,7 +12,7 @@ int main(void) {
                                         "./assets/shaders/solid_3d.frag");
   GFX_Texture2D tex = gfx_texture2d_load("./assets/textures/tiles.jpg", GFX_TEXTURE_TYPE_DIFFUSE, GFX_TEXTURE_FILTER_LINEAR, GFX_WRAP_REPEAT);
 
-  GFX_Mesh3D quad = gfx_mesh3d_shape_quad_create(1.0, 1.0);
+  GFX_Mesh3D mesh = gfx_mesh3d_shape_cuboid_create(1.0, 1.0, 1.0);
 
   GFX_Transform transform_model = GLM_MAT4_IDENTITY_INIT;
   vec3 r = {1.0, 1.0, 0.0};
@@ -29,7 +29,7 @@ int main(void) {
     gfx_buffers_clear();
 
     gfx_texture2d_bind(&tex);
-    gfx_mesh3d_draw(&quad, &shader, transform_model, transform_view, transform_projection);
+    gfx_mesh3d_draw(&mesh, &shader, transform_model, transform_view, transform_projection);
 
     gfx_window_swap_buffers(win);
     gfx_events_poll();
@@ -37,7 +37,7 @@ int main(void) {
 
   gfx_shader_destroy(&shader);
   gfx_texture2d_destroy(&tex);
-  gfx_mesh3d_destroy(&quad);
+  gfx_mesh3d_destroy(&mesh);
   gfx_terminate();
   return 0;
 }

@@ -36,6 +36,9 @@ GFX_Window *gfx_window_init(int w, int h, char *window_name) {
   fprintf(stderr, "[i] status: Using GL %d.%d\n", GLAD_VERSION_MAJOR(version),
           GLAD_VERSION_MINOR(version));
 
+  // Enable depth testing
+  GLCall(glEnable(GL_DEPTH_TEST));
+
   return window;
 }
 
