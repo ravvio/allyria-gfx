@@ -26,11 +26,19 @@ GFX_SpriteRenderer gfx_sprite_renderer_create() {
   return renderer;
 }
 
+// Fuction to setup the sprite renderer
+void gfx_sprite_renderer_start_draw(
+
+) {
+}
+
+// Tells the sprite renderer to render all sprites
 void gfx_sprite_renderer_draw(
     GFX_SpriteRenderer *renderer,
     GFX_Sprite *sprite,
     mat4 projection,
-    vec3 position
+    mat4 view,
+    mat4
 ) {
   gfx_shader_bind(sprite->shader);
 
@@ -40,5 +48,5 @@ void gfx_sprite_renderer_draw(
   gfx_shader_uniform_set_mat4(sprite->shader, "model", 0, model);
 
   glActiveTexture(GL_TEXTURE0);
-  gfx_texture2D_bind(sprite->texture);
+  gfx_texture2d_bind(sprite->texture);
 }

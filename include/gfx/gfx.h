@@ -112,7 +112,8 @@ GFX_VertexArray gfx_vertex_array_create();
 void gfx_vertex_array_destroy(const GFX_VertexArray *vao);
 void gfx_vertex_array_bind(const GFX_VertexArray *vao);
 void gfx_vertex_array_unbind();
-void gfx_vertex_array_add_buffer(const GFX_VertexArray *vao, const GFX_VertexBuffer *vb,
+void gfx_vertex_array_add_buffer(const GFX_VertexArray *vao,
+                                 const GFX_VertexBuffer *vb,
                                  const GFX_VertexLayout *layout);
 
 // Shader
@@ -131,10 +132,16 @@ void gfx_shader_bind(const GFX_Shader *shader);
 void gfx_shader_unbind();
 u_int32_t gfx_shader_uniform_get_location(const GFX_Shader *shader,
                                           const char *name);
-void gfx_shader_uniform_set_2f(const GFX_Shader *shader, const char *name,
-                               float v0, float v1);
-void gfx_shader_uniform_set_vec_1f(const GFX_Shader *shader, const char *name,
-                                   u_int32_t count, float *v0);
+void gfx_shader_uniform_set_int(const GFX_Shader *shader, const char *name,
+                                int v);
+void gfx_shader_uniform_set_float(const GFX_Shader *shader, const char *name,
+                                  float v);
+void gfx_shader_uniform_set_vec2(const GFX_Shader *shader, const char *name,
+                                 vec2 v);
+void gfx_shader_uniform_set_vec3(const GFX_Shader *shader, const char *name,
+                                 vec3 v);
+void gfx_shader_uniform_set_vec4(const GFX_Shader *shader, const char *name,
+                                 vec4 v);
 void gfx_shader_uniform_set_mat4(const GFX_Shader *shader, const char *name,
                                  int transpose, mat4 value);
 
@@ -172,7 +179,7 @@ void gfx_texture2d_destroy(const GFX_Texture2D *texture);
 void gfx_texture2d_bind(const GFX_Texture2D *texture);
 void gfx_texture2d_unbind();
 
-// Mesh
+// Mesh3D
 
 typedef struct {
   vec3 position;
@@ -202,7 +209,36 @@ void gfx_mesh3d_draw(const GFX_Mesh3D *mesh, const GFX_Shader *shader,
                      GFX_Transform trasform_projection);
 
 GFX_Mesh3D gfx_mesh3d_shape_quad_create(float_t width, float_t height);
-GFX_Mesh3D gfx_mesh3d_shape_cuboid_create(float_t width, float_t height, float_t depth);
+GFX_Mesh3D gfx_mesh3d_shape_cuboid_create(float_t width, float_t height,
+                                          float_t depth);
+
+// Mesh2D
+
+typedef struct {
+  vec2 position;
+  vec2 uv;
+} GFX_Vertex2D;
+
+GFX_Vertex2D gfx_vertex2d_create(float position_x, float position_y, float uv_x,
+                                 float uv_y);
+
+typedef struct {
+  GFX_Vertex2D *vertices;
+  u_int32_t *indices;
+
+  GFX_VertexArray _vao;
+  GFX_VertexBuffer _vbo;
+  GFX_IndexBuffer _ibo;
+} GFX_Mesh2D;
+
+GFX_Mesh2D gfx_mesh2d_create(u_int32_t vertices_count, GFX_Vertex2D *vertices,
+                             u_int32_t indices_count, u_int32_t *indices);
+void gfx_mesh2d_destroy(const GFX_Mesh2D *mesh);
+void gfx_mesh2d_draw(const GFX_Mesh2D *mesh, const GFX_Shader *shader,
+                     GFX_Transform trasform_model, GFX_Transform trasform_view,
+                     GFX_Transform trasform_projection);
+
+GFX_Mesh2D gfx_mesh2d_shape_quad_create(float_t width, float_t height);
 
 // Sprite
 
@@ -212,5 +248,6 @@ typedef struct {
 } GFX_Sprite;
 
 typedef struct {
+  GFX_Shader *shader;
   GFX_VertexArray *vao;
 } GFX_SpriteRenderer;

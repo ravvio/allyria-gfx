@@ -1,7 +1,8 @@
 #include "../include/gfx/gfx_gl.h"
 #include <stdio.h>
 
-u_int32_t gfx_shader_compile(u_int32_t type, const char *source, const int source_lenght) {
+u_int32_t gfx_shader_compile(u_int32_t type, const char *source,
+                             const int source_lenght) {
   GLCall(u_int32_t id = glCreateShader(type));
   GLCall(glShaderSource(id, 1, &source, &source_lenght));
   GLCall(glCompileShader(id));
@@ -97,9 +98,7 @@ void gfx_shader_bind(const GFX_Shader *shader) {
   GLCall(glUseProgram(shader->renderer_id));
 }
 
-void gfx_shader_unbind() {
-  GLCall(glUseProgram(0);)
-}
+void gfx_shader_unbind() { GLCall(glUseProgram(0);) }
 
 u_int32_t gfx_shader_uniform_get_location(const GFX_Shader *shader,
                                           const char *name) {
@@ -107,25 +106,50 @@ u_int32_t gfx_shader_uniform_get_location(const GFX_Shader *shader,
   return location;
 }
 
-void gfx_shader_uniform_set_mat4(const GFX_Shader *shader, const char *name, int transpose, mat4 value) {
+void gfx_shader_uniform_set_int(const GFX_Shader *shader, const char *name,
+                                int v) {
+  gfx_shader_bind(shader);
+  u_int32_t location = gfx_shader_uniform_get_location(shader, name);
+  assert(location != -1);
+  GLCall(glUniform1i(location, v));
+}
+
+void gfx_shader_uniform_set_float(const GFX_Shader *shader, const char *name,
+                                  float v) {
+  gfx_shader_bind(shader);
+  u_int32_t location = gfx_shader_uniform_get_location(shader, name);
+  assert(location != -1);
+  GLCall(glUniform1f(location, v));
+}
+
+void gfx_shader_uniform_set_vec2(const GFX_Shader *shader, const char *name,
+                                 vec2 v) {
+  gfx_shader_bind(shader);
+  u_int32_t location = gfx_shader_uniform_get_location(shader, name);
+  assert(location != -1);
+  GLCall(glUniform2fv(location, 1, v));
+}
+
+void gfx_shader_uniform_set_vec3(const GFX_Shader *shader, const char *name,
+                                 vec3 v) {
+  gfx_shader_bind(shader);
+  u_int32_t location = gfx_shader_uniform_get_location(shader, name);
+  assert(location != -1);
+  GLCall(glUniform3fv(location, 1, v));
+}
+
+void gfx_shader_uniform_set_vec4(const GFX_Shader *shader, const char *name,
+                                 vec4 v) {
+  gfx_shader_bind(shader);
+  u_int32_t location = gfx_shader_uniform_get_location(shader, name);
+  assert(location != -1);
+  GLCall(glUniform4fv(location, 1, v));
+}
+
+void gfx_shader_uniform_set_mat4(const GFX_Shader *shader, const char *name,
+                                 int transpose, mat4 value) {
   gfx_shader_bind(shader);
   u_int32_t location = gfx_shader_uniform_get_location(shader, name);
   assert(location != -1);
   GLCall(glUniformMatrix4fv(location, 1, transpose, *value));
-}
-
-void gfx_shader_uniform_set_2f(const GFX_Shader *shader, const char *name,
-                               float v0, float v1) {
-  gfx_shader_bind(shader);
-  u_int32_t location = gfx_shader_uniform_get_location(shader, name);
-  assert(location != -1);
-  GLCall(glUniform2f(location, v0, v1));
-}
-
-void gfx_shader_uniform_set_vec_1f(const GFX_Shader *shader, const char *name,
-                                   u_int32_t count, float *v0) {
-  gfx_shader_bind(shader);
-  u_int32_t location = gfx_shader_uniform_get_location(shader, name);
-  assert(location != -1);
-  GLCall(glUniform1fv(location, count, v0));
 }

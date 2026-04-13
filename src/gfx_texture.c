@@ -1,6 +1,7 @@
 #include "../include/gfx/gfx_gl.h"
 #include "../include/stb_image.h"
 
+// Load a texture
 GFX_Texture2D gfx_texture2d_load(const char *filename,
                                  enum GFX_TextureType type,
                                  enum GFX_TextureFilter filter,
@@ -10,11 +11,13 @@ GFX_Texture2D gfx_texture2d_load(const char *filename,
   u_int8_t *data = stbi_load(filename, &width, &height, &channels, 3);
 
   if (!data) {
-    fprintf(stderr, "[e] failed to load texture image: %s\n| %s", filename, stbi_failure_reason());
+    fprintf(stderr, "[e] failed to load texture image: %s\n| %s", filename,
+            stbi_failure_reason());
     GFX_Texture2D tex = {
         .width = 0,
         .height = 0,
         .renderer_id = -1,
+        .type = 0,
     };
   }
 
@@ -33,31 +36,40 @@ GFX_Texture2D gfx_texture2d_load(const char *filename,
                          gfx_gl_filter(filter)));
 
   // Add image data
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
-               GL_UNSIGNED_BYTE, data);
-  glGenerateMipmap(GL_TEXTURE_2D);
+  GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
+               GL_UNSIGNED_BYTE, data));
+  GLCall(glGenerateMipmap(GL_TEXTURE_2D));
 
   // Free image data
   stbi_image_free(data);
-
-  // Unbind
-  glBindTexture(GL_TEXTURE_2D, renderer_id);
+  // Unbind texture
+  gfx_texture2d_unbind();
 
   GFX_Texture2D tex = {
       .width = width,
       .height = height,
       .renderer_id = renderer_id,
+      .type = type,
   };
   fprintf(stderr, "[i] loaded texture %s\n", filename);
   return tex;
 }
 
 void gfx_texture2d_destroy(const GFX_Texture2D *texture) {
-  glDeleteTextures(1, &texture->renderer_id);
+  GLCall(glDeleteTextures(1, &texture->renderer_id));
 }
 
 void gfx_texture2d_bind(const GFX_Texture2D *texture) {
-  glBindTexture(GL_TEXTURE_2D, texture->renderer_id);
+  int unit = GL_TEXTURE0;
+  switch (texture->type) {
+  case GFX_TEXTURE_TYPE_DIFFUSE:
+    break;
+  case GFX_TEXTURE_TYPE_SPECULAR:
+    unit = GL_TEXTURE1;
+    break;
+  }
+  GLCall(glActiveTexture(unit));
+  GLCall(glBindTexture(GL_TEXTURE_2D, texture->renderer_id));
 }
 
-void gfx_texture2d_unbind() { glBindTexture(GL_TEXTURE_2D, 0); }
+void gfx_texture2d_unbind() { GLCall(glBindTexture(GL_TEXTURE_2D, 0)); }

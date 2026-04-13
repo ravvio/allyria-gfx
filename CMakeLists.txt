@@ -52,7 +52,8 @@ set(GFXSOURCES
     ./src/gfx_buffers.c
     ./src/gfx_shader.c
     ./src/gfx_texture.c
-    ./src/gfx_mesh.c
+    ./src/gfx_mesh2d.c
+    ./src/gfx_mesh3d.c
 )
 add_library(gfx ${GFXSOURCES})
 target_include_directories(gfx PUBLIC ./src ./external)
@@ -106,3 +107,4 @@ add_exe(basic)
 add_exe(triangle)
 add_exe(mesh)
 add_exe(texture)
+add_exe(material_std_unlit)
