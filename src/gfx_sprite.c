@@ -1,28 +1,32 @@
 #include "../include/gfx/gfx_gl.h"
 
 void gfx_sprite_create() {
-  GFX_Shader shader =
-      gfx_shader_create("./shaders/sprite.vert", "./shaders/sprite.frag");
 }
 
 GFX_SpriteRenderer gfx_sprite_renderer_create() {
-  float vertices[] = {
-      0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-      0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f,
-  };
-  GFX_VertexBuffer vbo = gfx_vertex_buffer_create(sizeof(vertices), vertices);
-  GFX_VertexLayout layout = gfx_vertex_layout_create();
-  gfx_vertex_layout_push_f32(&layout, 4, false);
+  // Load the sprite shader
+  GFX_Shader shader =
+      gfx_shader_create("./shaders/sprite.vert", "./shaders/sprite.frag");
 
-  GFX_VertexArray vao = gfx_vertex_array_create();
-  gfx_vertex_array_add_buffer(&vao, &vbo, &layout);
+  // We use a single mesh for all the sprites
+  GFX_VertexLayout sprite_vertex_layout = gfx_vertex_layout_create();
 
-  gfx_vertex_buffer_unbind();
-  gfx_vertex_array_unbind();
-
+  // Create renderer
   GFX_SpriteRenderer renderer = {
-    .vao = &vao
+    .shader = &shader,
+    .layers = {},
   };
+
+  // Initialize layers
+  for (int i = 0; i < SPRITE_LAYERS_COUNT; ++i) {
+    GFX_Sprite* sprites = malloc(0);
+    GFX_SpriteLayer layer = {
+      .sprites = sprites,
+      .sprites_count = 0,
+    };
+    renderer.layers[i] = layer;
+  }
+
   return renderer;
 }
 
@@ -34,9 +38,11 @@ void gfx_sprite_renderer_draw(
     mat4 trasform_view,
     mat4 trasform_model
 ) {
-  gfx_shader_bind(sprite->shader);
+  gfx_shader_bind(renderer->shader);
 
-  gfx_shader_uniform_set_mat4(sprite->shader, "t_model", false, trasform_model);
+  for (int i = SPRITE_LAYERS_COUNT - 1; i >= 0; --i) {
+    GFX_SpriteLayer layer = renderer->layers[i];
+  }
 
   glActiveTexture(GL_TEXTURE0);
   gfx_texture2d_bind(sprite->texture);

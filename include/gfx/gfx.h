@@ -1,5 +1,6 @@
 // Include libraries
 #include <math.h>
+#include <sys/_types/_u_int32_t.h>
 #include <sys/types.h>
 
 #define GLAD_GL_IMPLEMENTATION
@@ -254,11 +255,19 @@ GFX_Mesh2D gfx_mesh2d_shape_quad_create(float_t width, float_t height);
 // Sprite
 
 typedef struct {
-  GFX_Shader *shader;
+  GFX_Mesh2D *mesh;
   GFX_Texture2D *texture;
+  GFX_Transform transform_model;
 } GFX_Sprite;
 
 typedef struct {
+  GFX_Sprite *sprites;
+  u_int32_t sprites_count;
+} GFX_SpriteLayer;
+
+#define SPRITE_LAYERS_COUNT 32
+
+typedef struct {
   GFX_Shader *shader;
-  GFX_VertexArray *vao;
+  GFX_SpriteLayer layers[SPRITE_LAYERS_COUNT];
 } GFX_SpriteRenderer;
