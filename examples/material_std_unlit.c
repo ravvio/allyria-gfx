@@ -5,8 +5,10 @@ int main(void) {
     gfx_terminate();
     return 1;
   }
-
   GFX_Window *win = gfx_window_init(800, 600, "Mesh Example");
+
+  gfx_enable(GFX_FEATURE_DEPTH_TESTING);
+  gfx_enable(GFX_FEATURE_CULL_BACK);
 
   GFX_Texture2D tex = gfx_texture2d_load(
       "./assets/textures/tiles.jpg", GFX_TEXTURE_TYPE_DIFFUSE,
@@ -39,8 +41,8 @@ int main(void) {
     gfx_buffers_clear();
 
     gfx_texture2d_bind(&tex);
-    gfx_mesh3d_draw(&mesh, &shader, transform_model, transform_view,
-                    transform_projection);
+    gfx_mesh3d_draw(&mesh, &shader, transform_projection, transform_view,
+                    transform_model);
 
     gfx_window_swap_buffers(win);
     gfx_events_poll();

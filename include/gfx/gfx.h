@@ -30,13 +30,24 @@ typedef u_int8_t GFX_Error;
 typedef vec3 GFX_Color_RGB;
 typedef vec4 GFX_Color_RGBA;
 
-// Window
+// Features
+
+enum GFX_Feature {
+  GFX_FEATURE_DEPTH_TESTING,
+  GFX_FEATURE_CULL_BACK,
+};
+void gfx_enable(enum GFX_Feature);
+
+// Initialization
+
+GFX_Error gfx_init();
+void gfx_terminate();
+
+// Window and context
 
 typedef void GFX_Window;
 
-GFX_Error gfx_init();
 GFX_Window *gfx_window_init(int w, int h, char *window_name);
-void gfx_terminate();
 
 void gfx_window_size(GFX_Window *window, int *w, int *h);
 void gfx_window_size_set(GFX_Window *window, int w, int h);
@@ -205,8 +216,8 @@ GFX_Mesh3D gfx_mesh3d_create(u_int32_t vertices_count, GFX_Vertex3D *vertices,
                              u_int32_t indices_count, u_int32_t *indices);
 void gfx_mesh3d_destroy(const GFX_Mesh3D *mesh);
 void gfx_mesh3d_draw(const GFX_Mesh3D *mesh, const GFX_Shader *shader,
-                     GFX_Transform trasform_model, GFX_Transform trasform_view,
-                     GFX_Transform trasform_projection);
+                     GFX_Transform trasform_projection, GFX_Transform trasform_view,
+                     GFX_Transform trasform_model);
 
 GFX_Mesh3D gfx_mesh3d_shape_quad_create(float_t width, float_t height);
 GFX_Mesh3D gfx_mesh3d_shape_cuboid_create(float_t width, float_t height,

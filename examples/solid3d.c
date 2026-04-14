@@ -5,8 +5,9 @@ int main(void) {
     gfx_terminate();
     return 1;
   }
-
   GFX_Window *win = gfx_window_init(800, 600, "Mesh Example");
+  gfx_enable(GFX_FEATURE_DEPTH_TESTING);
+  gfx_enable(GFX_FEATURE_CULL_BACK);
 
   GFX_Shader shader = gfx_shader_create("./assets/shaders/solid_3d.vert",
                                         "./assets/shaders/solid_3d.frag");
@@ -16,7 +17,6 @@ int main(void) {
 
   GFX_Transform transform_model = GLM_MAT4_IDENTITY_INIT;
   vec3 r = {1.0, 1.0, 0.0};
-  glm_rotate(transform_model, glm_rad(50), r);
 
   GFX_Transform transform_view = GLM_MAT4_IDENTITY_INIT;
   vec3 t = {0.0, 0.0, -5.0};
@@ -28,8 +28,10 @@ int main(void) {
   while (!gfx_window_should_close(win)) {
     gfx_buffers_clear();
 
+    glm_rotate(transform_model, glm_rad(0.5), r);
+
     gfx_texture2d_bind(&tex);
-    gfx_mesh3d_draw(&mesh, &shader, transform_model, transform_view, transform_projection);
+    gfx_mesh3d_draw(&mesh, &shader, transform_projection, transform_view, transform_model);
 
     gfx_window_swap_buffers(win);
     gfx_events_poll();

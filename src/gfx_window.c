@@ -14,6 +14,20 @@ GFX_Error gfx_init() {
   return GFX_ERR_OK;
 }
 
+// Enable the given feature
+void gfx_enable(enum GFX_Feature feature) {
+  switch (feature) {
+  case GFX_FEATURE_DEPTH_TESTING:
+    // Enable depth testing
+    GLCall(glEnable(GL_DEPTH_TEST));
+    break;
+  case GFX_FEATURE_CULL_BACK:
+    GLCall(glEnable(GL_CULL_FACE));
+    GLCall(glCullFace(GL_BACK));
+    break;
+  }
+}
+
 // Terminate the gfx library
 void gfx_terminate() { glfwTerminate(); }
 
@@ -24,7 +38,8 @@ GFX_Window *gfx_window_init(int w, int h, char *window_name) {
   GLFWCall(glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE));
 
   // Create a window
-  GLFWCall(GFX_Window *window = glfwCreateWindow(800, 600, window_name, NULL, NULL));
+  GLFWCall(GFX_Window *window =
+               glfwCreateWindow(800, 600, window_name, NULL, NULL));
   if (!window) {
     return NULL;
   }
@@ -35,9 +50,6 @@ GFX_Window *gfx_window_init(int w, int h, char *window_name) {
   int version = gladLoadGL(glfwGetProcAddress);
   fprintf(stderr, "[i] status: Using GL %d.%d\n", GLAD_VERSION_MAJOR(version),
           GLAD_VERSION_MINOR(version));
-
-  // Enable depth testing
-  GLCall(glEnable(GL_DEPTH_TEST));
 
   return window;
 }
@@ -64,14 +76,10 @@ void gfx_window_swap_buffers(GFX_Window *window) {
 }
 
 // Clear the color buffer
-void gfx_color_buffer_clear() {
-  GLCall(glClear(GL_COLOR_BUFFER_BIT));
-}
+void gfx_color_buffer_clear() { GLCall(glClear(GL_COLOR_BUFFER_BIT)); }
 
 // Clear the depth buffer
-void gfx_depth_buffer_clear() {
-  GLCall(glClear(GL_DEPTH_BUFFER_BIT));
-}
+void gfx_depth_buffer_clear() { GLCall(glClear(GL_DEPTH_BUFFER_BIT)); }
 
 // Clear all buffers
 void gfx_buffers_clear() {
@@ -84,6 +92,4 @@ void gfx_color_buffer_set_clear(GFX_Color_RGBA color) {
 }
 
 // Set the depth buffer clear color
-void gfx_depth_buffer_set_clear(float_t depth) {
-  GLCall(glClearDepth(depth));
-}
+void gfx_depth_buffer_set_clear(float_t depth) { GLCall(glClearDepth(depth)); }

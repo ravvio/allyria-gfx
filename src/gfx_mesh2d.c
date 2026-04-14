@@ -62,10 +62,10 @@ void gfx_mesh2d_draw(const GFX_Mesh2D *mesh, const GFX_Shader *shader,
                      GFX_Transform trasform_projection) {
   gfx_shader_bind(shader);
 
-  gfx_shader_uniform_set_mat4(shader, "t_model", false, trasform_model);
-  gfx_shader_uniform_set_mat4(shader, "t_view", false, trasform_view);
   gfx_shader_uniform_set_mat4(shader, "t_projection", false,
                               trasform_projection);
+  gfx_shader_uniform_set_mat4(shader, "t_view", false, trasform_view);
+  gfx_shader_uniform_set_mat4(shader, "t_model", false, trasform_model);
 
   gfx_vertex_array_bind(&mesh->_vao);
   gfx_index_buffer_bind(&mesh->_ibo);
@@ -79,7 +79,7 @@ GFX_Mesh2D gfx_mesh2d_shape_quad_create(float_t width, float_t height) {
       gfx_vertex2d_create(+width / 2.0, -height / 2.0, 1.0, 0.0),
       gfx_vertex2d_create(+width / 2.0, +height / 2.0, 1.0, 1.0),
   };
-  u_int32_t indices[6] = {0, 1, 2, 2, 3, 0};
+  u_int32_t indices[6] = {0, 1, 2, 2, 3, 1};
 
   return gfx_mesh2d_create(4, vertices, 6, indices);
 }

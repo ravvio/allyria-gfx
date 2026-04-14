@@ -36,8 +36,8 @@ int main(void) {
 
   gfx_vertex_array_add_buffer(&vao, &vbo, &layout);
 
-  GFX_Shader shader = gfx_shader_create("./assets/shaders/shape_2d.vert",
-                                        "./assets/shaders/shape_2d.frag");
+  GFX_Shader shader = gfx_shader_create("./assets/shaders/triangle.vert",
+                                        "./assets/shaders/triangle.frag");
 
   while (!gfx_window_should_close(win)) {
     gfx_buffers_clear();
