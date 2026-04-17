@@ -38,7 +38,7 @@ u_int32_t gfx_shader_load(u_int32_t type, const char *filepath) {
   u_int64_t filesize = ftell(fd);
   rewind(fd);
 
-  char *buf = malloc(filesize);
+  char *buf = ecs_os_malloc(filesize);
   if (buf == NULL) {
     fclose(fd);
     return 0;
@@ -46,7 +46,7 @@ u_int32_t gfx_shader_load(u_int32_t type, const char *filepath) {
 
   size_t read = fread(buf, sizeof(char), filesize, fd);
   if (read != filesize) {
-    free(buf);
+    ecs_os_free(buf);
     fclose(fd);
     return 0;
   }

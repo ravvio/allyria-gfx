@@ -14,9 +14,9 @@ int main(void) {
   GFX_Mesh2D mesh = gfx_mesh2d_shape_quad_create(1.0, 1.0);
   GFX_Shader shader = gfx_shader_create("./assets/shaders/mesh_2d.vert",
                                         "./assets/shaders/mesh_2d.frag");
-  GFX_Transform transform_model = GLM_MAT4_IDENTITY_INIT;
-  GFX_Transform transform_view = GLM_MAT4_IDENTITY_INIT;
-  GFX_Transform transform_projection = GLM_MAT4_IDENTITY_INIT;
+  mat4 transform_model = GLM_MAT4_IDENTITY_INIT;
+  mat4 transform_view = GLM_MAT4_IDENTITY_INIT;
+  mat4 transform_projection = GLM_MAT4_IDENTITY_INIT;
   glm_translate_z(transform_view, -1);
 
   while (!gfx_window_should_close(win)) {

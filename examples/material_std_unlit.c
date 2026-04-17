@@ -16,15 +16,15 @@ int main(void) {
 
   GFX_Mesh3D mesh = gfx_mesh3d_shape_cuboid_create(1.0, 1.0, 1.0);
 
-  GFX_Transform transform_model = GLM_MAT4_IDENTITY_INIT;
+  mat4 transform_model = GLM_MAT4_IDENTITY_INIT;
   vec3 r = {1.0, 1.0, 0.0};
   glm_rotate(transform_model, glm_rad(50), r);
 
-  GFX_Transform transform_view = GLM_MAT4_IDENTITY_INIT;
+  mat4 transform_view = GLM_MAT4_IDENTITY_INIT;
   vec3 t = {0.0, 0.0, -5.0};
   glm_translate(transform_view, t);
 
-  GFX_Transform transform_projection = GLM_MAT4_IDENTITY_INIT;
+  mat4 transform_projection = GLM_MAT4_IDENTITY_INIT;
   glm_perspective(glm_rad(45.0), 800.0 / 600.0, 0.1f, 100.0f,
                   transform_projection);
 

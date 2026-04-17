@@ -43,6 +43,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(cglm)
 
+# Add flecs
+FetchContent_Declare(
+    flecs
+    GIT_REPOSITORY https://github.com/SanderMertens/flecs.git
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(flecs)
+
 # Create the GFX library
 set(GFXSOURCES
     ./src/gfx_gl.c
@@ -54,10 +62,17 @@ set(GFXSOURCES
     ./src/gfx_texture.c
     ./src/gfx_mesh2d.c
     ./src/gfx_mesh3d.c
+
+    ./src/gfx_transform.c
+
+    ./src/gfx_renderer.c
+    ./src/gfx_viewport.c
+
+    ./src/gfx_camera.c
 )
 add_library(gfx ${GFXSOURCES})
 target_include_directories(gfx PUBLIC ./src ./external)
-target_link_libraries(gfx PRIVATE OpenGL::GL glfw glad cglm_headers)
+target_link_libraries(gfx PRIVATE OpenGL::GL glfw glad cglm_headers flecs::flecs_static)
 
 # Copy full directories
 macro(copy_resource_dirs dirs)
@@ -100,7 +115,7 @@ function(add_exe EXE_NAME)
     )
 
     # And libraries
-    target_link_libraries(${EXE_NAME} PRIVATE OpenGL::GL glfw glad cglm_headers gfx)
+    target_link_libraries(${EXE_NAME} PRIVATE OpenGL::GL glfw glad cglm_headers flecs::flecs_static gfx)
 endfunction()
 
 add_exe(basic)

@@ -58,8 +58,8 @@ void gfx_mesh2d_destroy(const GFX_Mesh2D *mesh) {
 }
 
 void gfx_mesh2d_draw(const GFX_Mesh2D *mesh, const GFX_Shader *shader,
-                     GFX_Transform trasform_model, GFX_Transform trasform_view,
-                     GFX_Transform trasform_projection) {
+                     mat4 trasform_model, mat4 trasform_view,
+                     mat4 trasform_projection) {
   gfx_shader_bind(shader);
 
   gfx_shader_uniform_set_mat4(shader, "t_projection", false,

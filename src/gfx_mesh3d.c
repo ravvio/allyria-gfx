@@ -66,9 +66,8 @@ void gfx_mesh3d_destroy(const GFX_Mesh3D *mesh) {
 }
 
 void gfx_mesh3d_draw(const GFX_Mesh3D *mesh, const GFX_Shader *shader,
-                     GFX_Transform trasform_projection,
-                     GFX_Transform trasform_view,
-                     GFX_Transform trasform_model) {
+                     mat4 trasform_projection, mat4 trasform_view,
+                     mat4 trasform_model) {
   gfx_shader_bind(shader);
 
   gfx_shader_uniform_set_mat4(shader, "t_model", false, trasform_model);
@@ -171,4 +170,11 @@ GFX_Mesh3D gfx_mesh3d_shape_cuboid_create(float_t width, float_t height,
                            20, 21, 22, 22, 23, 20};
 
   return gfx_mesh3d_create(24, vertices, 36, indices);
+}
+
+void gfx_mesh3d_import(ecs_world_t *world) {
+  ECS_MODULE(world, gfx_mesh3d);
+  ecs_set_name_prefix(world, "gfx_");
+
+  ECS_COMPONENT(world, GFX_Mesh3D);
 }

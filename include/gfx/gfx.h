@@ -12,6 +12,8 @@
 #include "../stb_image.h"
 #define STB_IMAGE_IMPLEMENTATION
 
+#include "../flecs/flecs.h"
+
 // Definitions
 
 typedef u_int8_t GFX_Boolean;
@@ -62,10 +64,6 @@ void gfx_depth_buffer_clear();
 void gfx_buffers_clear();
 void gfx_color_buffer_set_clear(GFX_Color_RGBA color);
 void gfx_depth_buffer_set_clear(float_t depth);
-
-// Transform
-
-typedef mat4 GFX_Transform;
 
 // Vertex Buffer (VBO)
 
@@ -217,8 +215,8 @@ GFX_Mesh3D gfx_mesh3d_create(u_int32_t vertices_count, GFX_Vertex3D *vertices,
                              u_int32_t indices_count, u_int32_t *indices);
 void gfx_mesh3d_destroy(const GFX_Mesh3D *mesh);
 void gfx_mesh3d_draw(const GFX_Mesh3D *mesh, const GFX_Shader *shader,
-                     GFX_Transform trasform_projection, GFX_Transform trasform_view,
-                     GFX_Transform trasform_model);
+                     mat4 trasform_projection, mat4 trasform_view,
+                     mat4 trasform_model);
 
 GFX_Mesh3D gfx_mesh3d_shape_quad_create(float_t width, float_t height);
 GFX_Mesh3D gfx_mesh3d_shape_cuboid_create(float_t width, float_t height,
@@ -247,8 +245,8 @@ GFX_Mesh2D gfx_mesh2d_create(u_int32_t vertices_count, GFX_Vertex2D *vertices,
                              u_int32_t indices_count, u_int32_t *indices);
 void gfx_mesh2d_destroy(const GFX_Mesh2D *mesh);
 void gfx_mesh2d_draw(const GFX_Mesh2D *mesh, const GFX_Shader *shader,
-                     GFX_Transform trasform_model, GFX_Transform trasform_view,
-                     GFX_Transform trasform_projection);
+                     mat4 model, mat4 view,
+                     mat4 projection);
 
 GFX_Mesh2D gfx_mesh2d_shape_quad_create(float_t width, float_t height);
 
@@ -257,7 +255,7 @@ GFX_Mesh2D gfx_mesh2d_shape_quad_create(float_t width, float_t height);
 typedef struct {
   GFX_Mesh2D *mesh;
   GFX_Texture2D *texture;
-  GFX_Transform transform_model;
+  mat4 model;
 } GFX_Sprite;
 
 typedef struct {
@@ -271,3 +269,53 @@ typedef struct {
   GFX_Shader *shader;
   GFX_SpriteLayer layers[SPRITE_LAYERS_COUNT];
 } GFX_SpriteRenderer;
+
+// Engine
+
+typedef struct {
+  ecs_entity_t surface;
+} GFX_Engine;
+
+// Transform
+
+typedef mat4 GFX_Transform;
+extern ECS_COMPONENT_DECLARE(GFX_Transform);
+
+void GfxTransformImport(ecs_world_t *world);
+
+// Camera
+
+typedef struct {
+  mat4 projection;
+  mat4 view;
+  mat4 model;
+} GFX_Camera;
+extern ECS_COMPONENT_DECLARE(GFX_Camera);
+
+void gfx_camera_create_ortho(float aspect);
+
+void GfxCameraImport(ecs_world_t *world);
+
+// Surface
+
+typedef struct {
+} GFX_Surface;
+extern ECS_COMPONENT_DECLARE(GFX_Surface);
+
+// Renderer
+
+typedef struct {
+  // The camera model * view * projection
+  mat4 camera_mvp;
+} GFX_Uniform;
+extern ECS_COMPONENT_DECLARE(GFX_Uniform);
+
+typedef struct {
+} GFX_Renderer;
+extern ECS_COMPONENT_DECLARE(GFX_Renderer);
+
+// Viewport
+
+typedef struct {
+} GFX_Viewport;
+extern ECS_COMPONENT_DECLARE(GFX_Viewport);

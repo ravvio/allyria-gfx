@@ -19,7 +19,7 @@ GFX_SpriteRenderer gfx_sprite_renderer_create() {
 
   // Initialize layers
   for (int i = 0; i < SPRITE_LAYERS_COUNT; ++i) {
-    GFX_Sprite* sprites = malloc(0);
+    GFX_Sprite* sprites = ecs_os_malloc(0);
     GFX_SpriteLayer layer = {
       .sprites = sprites,
       .sprites_count = 0,

@@ -96,7 +96,7 @@ void gfx_vertex_layout_destroy(const GFX_VertexLayout *layout) {
 void gfx_vertex_layout_push_f32(GFX_VertexLayout *layout, u_int32_t count, GFX_Boolean normalized) {
   // Increase size
   layout->count += 1;
-  layout->elements = realloc(layout->elements,
+  layout->elements = ecs_os_realloc(layout->elements,
                              layout->count * sizeof(GFX_VertexLayoutElement));
   // Assign new element
   GFX_VertexLayoutElement el = {
