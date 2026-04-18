@@ -63,9 +63,12 @@ set(GFXSOURCES
     ./src/gfx_mesh2d.c
     ./src/gfx_mesh3d.c
 
+    ./src/gfx_engine.c
+
     ./src/gfx_transform.c
 
     ./src/gfx_renderer.c
+    ./src/gfx_surface.c
     ./src/gfx_viewport.c
 
     ./src/gfx_camera.c
@@ -124,3 +127,5 @@ add_exe(mesh2d)
 add_exe(mesh3d)
 add_exe(solid3d)
 add_exe(material_std_unlit)
+
+add_exe(engine)

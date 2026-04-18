@@ -1,6 +1,5 @@
 // Include libraries
 #include <math.h>
-#include <sys/_types/_u_int32_t.h>
 #include <sys/types.h>
 
 #define GLAD_GL_IMPLEMENTATION
@@ -51,9 +50,11 @@ void gfx_terminate();
 typedef void GFX_Window;
 
 GFX_Window *gfx_window_init(int w, int h, char *window_name);
+void gfx_window_destroy(GFX_Window *window);
 
 void gfx_window_size(GFX_Window *window, int *w, int *h);
 void gfx_window_size_set(GFX_Window *window, int w, int h);
+void gfx_window_scale(GFX_Window *window, float *scale_x, float *scale_y);
 int gfx_window_should_close(GFX_Window *window);
 void gfx_window_swap_buffers(GFX_Window *window);
 
@@ -269,12 +270,7 @@ typedef struct {
   GFX_Shader *shader;
   GFX_SpriteLayer layers[SPRITE_LAYERS_COUNT];
 } GFX_SpriteRenderer;
-
-// Engine
-
-typedef struct {
-  ecs_entity_t surface;
-} GFX_Engine;
+extern ECS_COMPONENT_DECLARE(GFX_Engine);
 
 // Transform
 
@@ -299,8 +295,18 @@ void GfxCameraImport(ecs_world_t *world);
 // Surface
 
 typedef struct {
+    GFX_Window *window;
+    int width;
+    int height;
+    float scale_x;
+    float scale_y;
+    int true_width;
+    int true_height;
 } GFX_Surface;
 extern ECS_COMPONENT_DECLARE(GFX_Surface);
+void gfx_surface_register(ecs_world_t *world);
+
+void gfx_surface_sync(GFX_Surface *surface);
 
 // Renderer
 
@@ -310,12 +316,18 @@ typedef struct {
 } GFX_Uniform;
 extern ECS_COMPONENT_DECLARE(GFX_Uniform);
 
-typedef struct {
-} GFX_Renderer;
-extern ECS_COMPONENT_DECLARE(GFX_Renderer);
+void GfxRendererImport(ecs_world_t *world);
 
 // Viewport
 
 typedef struct {
 } GFX_Viewport;
 extern ECS_COMPONENT_DECLARE(GFX_Viewport);
+
+// Engine
+
+typedef struct {
+  ecs_entity_t surface_id;
+} GFX_Engine;
+
+void GfxEngineImport(ecs_world_t *world);

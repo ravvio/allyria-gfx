@@ -1,4 +1,5 @@
 #include "../include/gfx/gfx_gl.h"
+#include <GLFW/glfw3.h>
 
 typedef GLFWwindow _GFX_Window;
 
@@ -54,6 +55,11 @@ GFX_Window *gfx_window_init(int w, int h, char *window_name) {
   return window;
 }
 
+// Destroy the window and its context
+void gfx_window_destroy(GFX_Window *window) {
+  GLFWCall(glfwDestroyWindow((_GFX_Window *)window));
+}
+
 // Get the size of the window
 void gfx_window_size(GFX_Window *window, int *w, int *h) {
   GLFWCall(glfwGetWindowSize((_GFX_Window *)window, w, h));
@@ -62,6 +68,11 @@ void gfx_window_size(GFX_Window *window, int *w, int *h) {
 // Set the size of the window
 void gfx_window_size_set(GFX_Window *window, int w, int h) {
   GLFWCall(glfwSetWindowSize((_GFX_Window *)window, w, h));
+}
+
+// Get the content scale of the window
+void gfx_window_scale(GFX_Window *window, float *scale_x, float *scale_y) {
+  GLFWCall(glfwGetWindowContentScale((_GFX_Window *)window, scale_x, scale_y));
 }
 
 // Should the window be closed

@@ -1,5 +1,7 @@
 #include "../include/gfx/gfx.h"
 
+ECS_COMPONENT_DECLARE(GFX_Camera);
+
 void gfx_camera_create_ortho(float aspect) {
   GFX_Camera cam = {
       .projection = GLM_MAT4_IDENTITY_INIT,
