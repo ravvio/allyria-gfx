@@ -1,4 +1,4 @@
-#include "../include/gfx/gfx_gl.h"
+#include "../../include/gfx/graphics/gfx_gl.h"
 
 static GFX_Boolean __gfx_vertex3d_layout_init = GFX_FALSE;
 static GFX_VertexLayout __gfx_vertex3d_layout;
@@ -40,7 +40,7 @@ GFX_Vertex3D gfx_vertex3d_create(float position_x, float position_y,
   return vertex;
 }
 
-GFX_Mesh3D gfx_mesh3d_create(u_int32_t vertices_count, GFX_Vertex3D *vertices,
+GFX_Geometry3D gfx_geometry3d_create(u_int32_t vertices_count, GFX_Vertex3D *vertices,
                              u_int32_t indices_count, u_int32_t *indices) {
   GFX_VertexArray vao = gfx_vertex_array_create();
   GFX_VertexBuffer vbo =
@@ -49,23 +49,23 @@ GFX_Mesh3D gfx_mesh3d_create(u_int32_t vertices_count, GFX_Vertex3D *vertices,
 
   gfx_vertex_array_add_buffer(&vao, &vbo, _gfx_vertex3d_layout());
 
-  GFX_Mesh3D mesh = {
+  GFX_Geometry3D geometry = {
       .vertices = vertices,
       .indices = indices,
       ._vao = vao,
       ._vbo = vbo,
       ._ibo = ibo,
   };
-  return mesh;
+  return geometry;
 }
 
-void gfx_mesh3d_destroy(const GFX_Mesh3D *mesh) {
-  gfx_vertex_array_destroy(&mesh->_vao);
-  gfx_vertex_buffer_destroy(&mesh->_vbo);
-  gfx_index_buffer_destroy(&mesh->_ibo);
+void gfx_geometry3d_destroy(const GFX_Geometry3D *geometry) {
+  gfx_vertex_array_destroy(&geometry->_vao);
+  gfx_vertex_buffer_destroy(&geometry->_vbo);
+  gfx_index_buffer_destroy(&geometry->_ibo);
 }
 
-void gfx_mesh3d_draw(const GFX_Mesh3D *mesh, const GFX_Shader *shader,
+void gfx_geometry3d_draw(const GFX_Geometry3D *geometry, const GFX_Shader *shader,
                      mat4 trasform_projection, mat4 trasform_view,
                      mat4 trasform_model) {
   gfx_shader_bind(shader);
@@ -75,12 +75,12 @@ void gfx_mesh3d_draw(const GFX_Mesh3D *mesh, const GFX_Shader *shader,
   gfx_shader_uniform_set_mat4(shader, "t_projection", false,
                               trasform_projection);
 
-  gfx_vertex_array_bind(&mesh->_vao);
-  gfx_index_buffer_bind(&mesh->_ibo);
-  glDrawElements(GL_TRIANGLES, mesh->_ibo.count, GL_UNSIGNED_INT, NULL);
+  gfx_vertex_array_bind(&geometry->_vao);
+  gfx_index_buffer_bind(&geometry->_ibo);
+  glDrawElements(GL_TRIANGLES, geometry->_ibo.count, GL_UNSIGNED_INT, NULL);
 }
 
-GFX_Mesh3D gfx_mesh3d_shape_quad_create(float_t width, float_t height) {
+GFX_Geometry3D gfx_geometry3d_shape_quad_create(float_t width, float_t height) {
   GFX_Vertex3D vertices[4] = {
       // front
       gfx_vertex3d_create(-width / 2.0, +height / 2.0, 0.0, 0.0, 0.0, -1.0, 0.0,
@@ -94,10 +94,10 @@ GFX_Mesh3D gfx_mesh3d_shape_quad_create(float_t width, float_t height) {
   };
   u_int32_t indices[6] = {0, 1, 2, 2, 3, 0};
 
-  return gfx_mesh3d_create(4, vertices, 6, indices);
+  return gfx_geometry3d_create(4, vertices, 6, indices);
 }
 
-GFX_Mesh3D gfx_mesh3d_shape_cuboid_create(float_t width, float_t height,
+GFX_Geometry3D gfx_geometry3d_shape_cuboid_create(float_t width, float_t height,
                                           float_t depth) {
   GFX_Vertex3D vertices[24] = {
       // front
@@ -169,12 +169,12 @@ GFX_Mesh3D gfx_mesh3d_shape_cuboid_create(float_t width, float_t height,
                            // bottom
                            20, 21, 22, 22, 23, 20};
 
-  return gfx_mesh3d_create(24, vertices, 36, indices);
+  return gfx_geometry3d_create(24, vertices, 36, indices);
 }
 
-void gfx_mesh3d_import(ecs_world_t *world) {
-  ECS_MODULE(world, gfx_mesh3d);
+void gfx_geometry3d_import(ecs_world_t *world) {
+  ECS_MODULE(world, gfx_geometry3d);
   ecs_set_name_prefix(world, "gfx_");
 
-  ECS_COMPONENT(world, GFX_Mesh3D);
+  ECS_COMPONENT(world, GFX_Geometry3D);
 }

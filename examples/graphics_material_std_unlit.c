@@ -1,20 +1,20 @@
-#include "../include/gfx/gfx.h"
+#include "../include/gfx/graphics/gfx_graphics.h"
 
 int main(void) {
-  if (gfx_init() != GFX_ERR_OK) {
-    gfx_terminate();
+  if (gfx_graphics_init() != GFX_ERR_OK) {
+    gfx_graphics_terminate();
     return 1;
   }
   GFX_Window *win = gfx_window_init(800, 600, "Mesh Example");
 
-  gfx_enable(GFX_FEATURE_DEPTH_TESTING);
-  gfx_enable(GFX_FEATURE_CULL_BACK);
+  gfx_graphics_enable(GFX_GRAPHICS_FEATURE_DEPTH_TESTING);
+  gfx_graphics_enable(GFX_GRAPHICS_FEATURE_CULL_BACK);
 
   GFX_Texture2D tex = gfx_texture2d_load(
       "./assets/textures/tiles.jpg", GFX_TEXTURE_TYPE_DIFFUSE,
       GFX_TEXTURE_FILTER_LINEAR, GFX_WRAP_REPEAT);
 
-  GFX_Mesh3D mesh = gfx_mesh3d_shape_cuboid_create(1.0, 1.0, 1.0);
+  GFX_Geometry3D geometry = gfx_geometry3d_shape_cuboid_create(1.0, 1.0, 1.0);
 
   mat4 transform_model = GLM_MAT4_IDENTITY_INIT;
   vec3 r = {1.0, 1.0, 0.0};
@@ -41,16 +41,16 @@ int main(void) {
     gfx_buffers_clear();
 
     gfx_texture2d_bind(&tex);
-    gfx_mesh3d_draw(&mesh, &shader, transform_projection, transform_view,
+    gfx_geometry3d_draw(&geometry, &shader, transform_projection, transform_view,
                     transform_model);
 
     gfx_window_swap_buffers(win);
-    gfx_events_poll();
+    gfx_window_events_poll();
   }
 
   gfx_shader_destroy(&shader);
   gfx_texture2d_destroy(&tex);
-  gfx_mesh3d_destroy(&mesh);
-  gfx_terminate();
+  gfx_geometry3d_destroy(&geometry);
+  gfx_graphics_terminate();
   return 0;
 }

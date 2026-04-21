@@ -1,10 +1,4 @@
-#include "../include/gfx/gfx.h"
-
-#ifdef GFX_VERBOSE
-#include <stdio.h>
-#endif
-
-ECS_COMPONENT_DECLARE(GFX_Uniform);
+#include "../../include/gfx/gfx.h"
 
 // Rendering system
 void _gfx_sys_render(ecs_iter_t *it) {
@@ -19,7 +13,7 @@ void _gfx_sys_render(ecs_iter_t *it) {
 
   // End render
   gfx_window_swap_buffers(surface->window);
-  gfx_events_poll();
+  gfx_window_events_poll();
 }
 
 void GfxRendererImport(ecs_world_t *world) {

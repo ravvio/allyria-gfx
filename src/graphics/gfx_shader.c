@@ -1,5 +1,4 @@
-#include "../include/gfx/gfx_gl.h"
-#include <stdio.h>
+#include "../../include/gfx/graphics/gfx_gl.h"
 
 u_int32_t gfx_shader_compile(u_int32_t type, const char *source,
                              const int source_lenght) {
@@ -38,7 +37,7 @@ u_int32_t gfx_shader_load(u_int32_t type, const char *filepath) {
   u_int64_t filesize = ftell(fd);
   rewind(fd);
 
-  char *buf = ecs_os_malloc(filesize);
+  char *buf = malloc(filesize);
   if (buf == NULL) {
     fclose(fd);
     return 0;
@@ -46,7 +45,7 @@ u_int32_t gfx_shader_load(u_int32_t type, const char *filepath) {
 
   size_t read = fread(buf, sizeof(char), filesize, fd);
   if (read != filesize) {
-    ecs_os_free(buf);
+    free(buf);
     fclose(fd);
     return 0;
   }

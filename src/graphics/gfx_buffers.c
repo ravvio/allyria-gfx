@@ -1,6 +1,7 @@
 // Methods to create and manipulate OpenGL buffers and objects
 
-#include "../include/gfx/gfx_gl.h"
+#include "../../include/gfx/graphics/gfx_gl.h"
+#include <stdio.h>
 
 // ============================================================================
 // VBO (Vertex Buffer)
@@ -96,7 +97,7 @@ void gfx_vertex_layout_destroy(const GFX_VertexLayout *layout) {
 void gfx_vertex_layout_push_f32(GFX_VertexLayout *layout, u_int32_t count, GFX_Boolean normalized) {
   // Increase size
   layout->count += 1;
-  layout->elements = ecs_os_realloc(layout->elements,
+  layout->elements = realloc(layout->elements,
                              layout->count * sizeof(GFX_VertexLayoutElement));
   // Assign new element
   GFX_VertexLayoutElement el = {

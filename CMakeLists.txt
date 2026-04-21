@@ -53,25 +53,23 @@ FetchContent_MakeAvailable(flecs)
 
 # Create the GFX library
 set(GFXSOURCES
-    ./src/gfx_gl.c
-    ./src/gfx_glfw.c
-    ./src/gfx_window.c
-    ./src/gfx_events.c
-    ./src/gfx_buffers.c
-    ./src/gfx_shader.c
-    ./src/gfx_texture.c
-    ./src/gfx_mesh2d.c
-    ./src/gfx_mesh3d.c
+    ./src/graphics/gfx_gl.c
+    ./src/graphics/gfx_glfw.c
+    ./src/graphics/gfx_window.c
+    ./src/graphics/gfx_buffers.c
+    ./src/graphics/gfx_shader.c
+    ./src/graphics/gfx_texture.c
+    ./src/graphics/gfx_geometry2d.c
+    ./src/graphics/gfx_geometry3d.c
 
+    ./src/renderer/gfx_renderer.c
+    ./src/renderer/gfx_viewport.c
+
+    ./src/camera/gfx_camera.c
+
+    ./src/gfx.c
     ./src/gfx_engine.c
-
     ./src/gfx_transform.c
-
-    ./src/gfx_renderer.c
-    ./src/gfx_surface.c
-    ./src/gfx_viewport.c
-
-    ./src/gfx_camera.c
 )
 add_library(gfx ${GFXSOURCES})
 target_include_directories(gfx PUBLIC ./src ./external)
@@ -121,11 +119,8 @@ function(add_exe EXE_NAME)
     target_link_libraries(${EXE_NAME} PRIVATE OpenGL::GL glfw glad cglm_headers flecs::flecs_static gfx)
 endfunction()
 
-add_exe(basic)
-add_exe(triangle)
-add_exe(mesh2d)
-add_exe(mesh3d)
-add_exe(solid3d)
-add_exe(material_std_unlit)
-
-add_exe(engine)
+add_exe(graphics_basic)
+add_exe(graphics_triangle)
+add_exe(graphics_geometry2d)
+add_exe(graphics_geometry3d)
+add_exe(graphics_material_std_unlit)

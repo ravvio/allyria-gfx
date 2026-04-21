@@ -1,8 +1,8 @@
-#include "../include/gfx/gfx.h"
+#include "../include/gfx/graphics/gfx_graphics.h"
 
 int main(void) {
-    if (gfx_init() != GFX_ERR_OK) {
-        gfx_terminate();
+    if (gfx_graphics_init() != GFX_ERR_OK) {
+        gfx_graphics_terminate();
         return 1;
     }
 
@@ -15,9 +15,9 @@ int main(void) {
         gfx_buffers_clear();
 
         gfx_window_swap_buffers(win);
-        gfx_events_poll();
+        gfx_window_events_poll();
     }
 
-    gfx_terminate();
+    gfx_graphics_terminate();
     return 0;
 }

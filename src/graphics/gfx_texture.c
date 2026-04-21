@@ -1,5 +1,4 @@
-#include "../include/gfx/gfx_gl.h"
-#include "../include/stb_image.h"
+#include "../../include/gfx/graphics/gfx_gl.h"
 
 // Load a texture
 GFX_Texture2D gfx_texture2d_load(const char *filename,

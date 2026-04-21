@@ -1,6 +1,7 @@
 // This is the header that includes internal functions
 
-#include "gfx.h"
+#include "../gfx_common.h"
+#include "gfx_graphics.h"
 
 #ifdef GFX_NDEBUG
 #define GLCall(x) x;

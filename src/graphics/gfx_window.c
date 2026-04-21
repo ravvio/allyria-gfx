@@ -1,36 +1,36 @@
-#include "../include/gfx/gfx_gl.h"
-#include <GLFW/glfw3.h>
+#include "../../include/gfx/graphics/gfx_gl.h"
 
 typedef GLFWwindow _GFX_Window;
 
-// Initialize the gfx library
-GFX_Error gfx_init() {
+// Initialize the gfx graphics library
+GFX_Error gfx_graphics_init() {
   // Initialize GLFW
   if (glfwInit() == GLFW_FALSE) {
     gfx_glfw_errors_check();
     return GFX_ERR_GLFW;
   }
-  fprintf(stdout, "[i] status: Using GLFW %s\n", glfwGetVersionString());
+  fprintf(stderr, "[i] status: Using GLFW %s\n", glfwGetVersionString());
 
   return GFX_ERR_OK;
 }
 
-// Enable the given feature
-void gfx_enable(enum GFX_Feature feature) {
+// Terminate the gfx grpahics library
+void gfx_graphics_terminate() { glfwTerminate(); }
+
+// Enable the given graphics feature
+void gfx_graphics_enable(enum GFX_Graphics_Feature feature) {
   switch (feature) {
-  case GFX_FEATURE_DEPTH_TESTING:
+  case GFX_GRAPHICS_FEATURE_DEPTH_TESTING:
     // Enable depth testing
     GLCall(glEnable(GL_DEPTH_TEST));
     break;
-  case GFX_FEATURE_CULL_BACK:
+  case GFX_GRAPHICS_FEATURE_CULL_BACK:
+    // Enable back face culling
     GLCall(glEnable(GL_CULL_FACE));
     GLCall(glCullFace(GL_BACK));
     break;
   }
 }
-
-// Terminate the gfx library
-void gfx_terminate() { glfwTerminate(); }
 
 GFX_Window *gfx_window_init(int w, int h, char *window_name) {
   // Hint
@@ -84,6 +84,11 @@ int gfx_window_should_close(GFX_Window *window) {
 // Swap front and back buffers
 void gfx_window_swap_buffers(GFX_Window *window) {
   GLFWCall(glfwSwapBuffers((_GFX_Window *)window));
+}
+
+// Poll window events
+void gfx_window_events_poll() {
+  GLFWCall(glfwPollEvents());
 }
 
 // Clear the color buffer

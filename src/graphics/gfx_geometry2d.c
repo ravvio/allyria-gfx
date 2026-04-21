@@ -1,4 +1,4 @@
-#include "../include/gfx/gfx_gl.h"
+#include "../../include/gfx/graphics/gfx_gl.h"
 
 static GFX_Boolean __gfx_vertex2d_layout_init = GFX_FALSE;
 static GFX_VertexLayout __gfx_vertex2d_layout;
@@ -32,7 +32,7 @@ GFX_Vertex2D gfx_vertex2d_create(float position_x, float position_y, float uv_x,
   return vertex;
 }
 
-GFX_Mesh2D gfx_mesh2d_create(u_int32_t vertices_count, GFX_Vertex2D *vertices,
+GFX_Geometry2D gfx_geometry2d_create(u_int32_t vertices_count, GFX_Vertex2D *vertices,
                              u_int32_t indices_count, u_int32_t *indices) {
   GFX_VertexArray vao = gfx_vertex_array_create();
   GFX_VertexBuffer vbo =
@@ -41,23 +41,23 @@ GFX_Mesh2D gfx_mesh2d_create(u_int32_t vertices_count, GFX_Vertex2D *vertices,
 
   gfx_vertex_array_add_buffer(&vao, &vbo, _gfx_vertex2d_layout());
 
-  GFX_Mesh2D mesh = {
+  GFX_Geometry2D geometry = {
       .vertices = vertices,
       .indices = indices,
       ._vao = vao,
       ._vbo = vbo,
       ._ibo = ibo,
   };
-  return mesh;
+  return geometry;
 }
 
-void gfx_mesh2d_destroy(const GFX_Mesh2D *mesh) {
-  gfx_vertex_array_destroy(&mesh->_vao);
-  gfx_vertex_buffer_destroy(&mesh->_vbo);
-  gfx_index_buffer_destroy(&mesh->_ibo);
+void gfx_geometry2d_destroy(const GFX_Geometry2D *geometry) {
+  gfx_vertex_array_destroy(&geometry->_vao);
+  gfx_vertex_buffer_destroy(&geometry->_vbo);
+  gfx_index_buffer_destroy(&geometry->_ibo);
 }
 
-void gfx_mesh2d_draw(const GFX_Mesh2D *mesh, const GFX_Shader *shader,
+void gfx_geometry2d_draw(const GFX_Geometry2D *geometry, const GFX_Shader *shader,
                      mat4 trasform_model, mat4 trasform_view,
                      mat4 trasform_projection) {
   gfx_shader_bind(shader);
@@ -67,12 +67,12 @@ void gfx_mesh2d_draw(const GFX_Mesh2D *mesh, const GFX_Shader *shader,
   gfx_shader_uniform_set_mat4(shader, "t_view", false, trasform_view);
   gfx_shader_uniform_set_mat4(shader, "t_model", false, trasform_model);
 
-  gfx_vertex_array_bind(&mesh->_vao);
-  gfx_index_buffer_bind(&mesh->_ibo);
-  glDrawElements(GL_TRIANGLES, mesh->_ibo.count, GL_UNSIGNED_INT, NULL);
+  gfx_vertex_array_bind(&geometry->_vao);
+  gfx_index_buffer_bind(&geometry->_ibo);
+  glDrawElements(GL_TRIANGLES, geometry->_ibo.count, GL_UNSIGNED_INT, NULL);
 }
 
-GFX_Mesh2D gfx_mesh2d_shape_quad_create(float_t width, float_t height) {
+GFX_Geometry2D gfx_geometry2d_shape_quad_create(float_t width, float_t height) {
   GFX_Vertex2D vertices[4] = {
       gfx_vertex2d_create(-width / 2.0, -height / 2.0, 0.0, 0.0),
       gfx_vertex2d_create(-width / 2.0, +height / 2.0, 0.0, 1.0),
@@ -81,5 +81,5 @@ GFX_Mesh2D gfx_mesh2d_shape_quad_create(float_t width, float_t height) {
   };
   u_int32_t indices[6] = {0, 1, 2, 2, 3, 1};
 
-  return gfx_mesh2d_create(4, vertices, 6, indices);
+  return gfx_geometry2d_create(4, vertices, 6, indices);
 }
