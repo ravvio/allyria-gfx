@@ -25,10 +25,12 @@ void gfx_graphics_enable(enum GFX_Graphics_Feature);
 
 typedef void GFX_Window;
 
-GFX_Window *gfx_window_init(int w, int h, char *window_name);
+GFX_Window *gfx_window_init(int w, int h, const char *window_name);
+void gfx_window_destroy(GFX_Window* window);
 
 void gfx_window_size(GFX_Window *window, int *w, int *h);
 void gfx_window_size_set(GFX_Window *window, int w, int h);
+void gfx_window_scale(GFX_Window *window, float *sx, float *sy);
 int gfx_window_should_close(GFX_Window *window);
 void gfx_window_swap_buffers(GFX_Window *window);
 void gfx_window_events_poll();
@@ -36,7 +38,7 @@ void gfx_window_events_poll();
 void gfx_color_buffer_clear();
 void gfx_depth_buffer_clear();
 void gfx_buffers_clear();
-void gfx_color_buffer_set_clear(GFX_Color_RGBA color);
+void gfx_color_buffer_set_clear(const GFX_Color_RGBA color);
 void gfx_depth_buffer_set_clear(float_t depth);
 
 // Vertex Buffer (VBO)

@@ -32,7 +32,7 @@ void gfx_graphics_enable(enum GFX_Graphics_Feature feature) {
   }
 }
 
-GFX_Window *gfx_window_init(int w, int h, char *window_name) {
+GFX_Window *gfx_window_init(int w, int h, const char *window_name) {
   // Hint
   GLFWCall(glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3));
   GLFWCall(glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3));
@@ -55,7 +55,7 @@ GFX_Window *gfx_window_init(int w, int h, char *window_name) {
   return window;
 }
 
-// Destroy the window and its context
+// Destroy the given window
 void gfx_window_destroy(GFX_Window *window) {
   GLFWCall(glfwDestroyWindow((_GFX_Window *)window));
 }
@@ -71,8 +71,8 @@ void gfx_window_size_set(GFX_Window *window, int w, int h) {
 }
 
 // Get the content scale of the window
-void gfx_window_scale(GFX_Window *window, float *scale_x, float *scale_y) {
-  GLFWCall(glfwGetWindowContentScale((_GFX_Window *)window, scale_x, scale_y));
+void gfx_window_scale(GFX_Window *window, float *sx, float *sy) {
+  GLFWCall(glfwGetWindowContentScale((_GFX_Window *)window, sx, sy));
 }
 
 // Should the window be closed
@@ -87,9 +87,7 @@ void gfx_window_swap_buffers(GFX_Window *window) {
 }
 
 // Poll window events
-void gfx_window_events_poll() {
-  GLFWCall(glfwPollEvents());
-}
+void gfx_window_events_poll() { GLFWCall(glfwPollEvents()); }
 
 // Clear the color buffer
 void gfx_color_buffer_clear() { GLCall(glClear(GL_COLOR_BUFFER_BIT)); }
@@ -103,7 +101,7 @@ void gfx_buffers_clear() {
 }
 
 // Set the color buffer clear
-void gfx_color_buffer_set_clear(GFX_Color_RGBA color) {
+void gfx_color_buffer_set_clear(const GFX_Color_RGBA color) {
   GLCall(glClearColor(color[0], color[1], color[2], color[3]));
 }
 

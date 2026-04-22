@@ -64,6 +64,7 @@ set(GFXSOURCES
 
     ./src/renderer/gfx_renderer.c
     ./src/renderer/gfx_viewport.c
+    ./src/renderer/gfx_surface.c
 
     ./src/camera/gfx_camera.c
 
@@ -124,3 +125,5 @@ add_exe(graphics_triangle)
 add_exe(graphics_geometry2d)
 add_exe(graphics_geometry3d)
 add_exe(graphics_material_std_unlit)
+
+add_exe(engine_basic)

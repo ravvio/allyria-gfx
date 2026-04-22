@@ -1,5 +1,7 @@
 #include "../../include/gfx/gfx.h"
 
+ECS_COMPONENT_DECLARE(GFX_Viewport);
+
 void _gfx_viewport_write_camera(
     const ecs_world_t *world
 ) {

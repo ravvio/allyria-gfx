@@ -2,6 +2,20 @@
 #include "gfx_common.h"
 #include "graphics/gfx_graphics.h"
 
+// Setup
+
+typedef struct {
+  const char *window_name;
+  int window_width;
+  int window_height;
+  enum GFX_Graphics_Feature *graphics_features;
+  int graphics_features_count;
+  GFX_Color_RGBA clear_color;
+} GFX_ProjectSettings;
+
+GFX_Error gfx_init(const GFX_ProjectSettings *settings, ecs_world_t *world);
+void gfx_terminate();
+
 // Transform
 
 typedef mat4 GFX_Transform;
@@ -25,13 +39,13 @@ void GfxCameraImport(ecs_world_t *world);
 // Surface
 
 typedef struct {
-    GFX_Window *window;
-    int width;
-    int height;
-    float scale_x;
-    float scale_y;
-    int true_width;
-    int true_height;
+  GFX_Window *window;
+  int width;
+  int height;
+  float scale_x;
+  float scale_y;
+  int true_width;
+  int true_height;
 } GFX_Surface;
 extern ECS_COMPONENT_DECLARE(GFX_Surface);
 void gfx_surface_register(ecs_world_t *world);
