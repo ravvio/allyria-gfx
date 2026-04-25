@@ -1,6 +1,6 @@
 #include "../include/gfx/graphics/gfx_graphics.h"
 
-int main(void) {
+int main() {
     if (gfx_graphics_init() != GFX_ERR_OK) {
         gfx_graphics_terminate();
         return 1;

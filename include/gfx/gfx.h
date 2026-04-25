@@ -14,7 +14,7 @@ typedef struct {
 } GFX_ProjectSettings;
 
 GFX_Error gfx_init(const GFX_ProjectSettings *settings, ecs_world_t *world);
-void gfx_terminate();
+void gfx_terminate(void);
 
 // Transform
 

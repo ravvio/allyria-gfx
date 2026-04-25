@@ -10,8 +10,8 @@ typedef vec4 GFX_Color_RGBA;
 
 // Graphics
 
-GFX_Error gfx_graphics_init();
-void gfx_graphics_terminate();
+GFX_Error gfx_graphics_init(void);
+void gfx_graphics_terminate(void);
 
 // Features
 
@@ -33,11 +33,11 @@ void gfx_window_size_set(GFX_Window *window, int w, int h);
 void gfx_window_scale(GFX_Window *window, float *sx, float *sy);
 int gfx_window_should_close(GFX_Window *window);
 void gfx_window_swap_buffers(GFX_Window *window);
-void gfx_window_events_poll();
+void gfx_window_events_poll(void);
 
-void gfx_color_buffer_clear();
-void gfx_depth_buffer_clear();
-void gfx_buffers_clear();
+void gfx_color_buffer_clear(void);
+void gfx_depth_buffer_clear(void);
+void gfx_buffers_clear(void);
 void gfx_color_buffer_set_clear(const GFX_Color_RGBA color);
 void gfx_depth_buffer_set_clear(float_t depth);
 
@@ -50,7 +50,7 @@ typedef struct {
 GFX_VertexBuffer gfx_vertex_buffer_create(u_int32_t size, const void *data);
 void gfx_vertex_buffer_destroy(const GFX_VertexBuffer *vb);
 void gfx_vertex_buffer_bind(const GFX_VertexBuffer *vb);
-void gfx_vertex_buffer_unbind();
+void gfx_vertex_buffer_unbind(void);
 
 // Index Buffer (IBO)
 
@@ -63,7 +63,7 @@ typedef struct {
 GFX_IndexBuffer gfx_index_buffer_create(u_int32_t count, const u_int32_t *data);
 void gfx_index_buffer_destroy(const GFX_IndexBuffer *ib);
 void gfx_index_buffer_bind(const GFX_IndexBuffer *ib);
-void gfx_index_buffer_unbind();
+void gfx_index_buffer_unbind(void);
 u_int32_t gfx_index_buffer_get_count(const GFX_IndexBuffer *ib);
 
 // Vertex Layout
@@ -80,7 +80,7 @@ typedef struct {
   GFX_VertexLayoutElement *elements;
 } GFX_VertexLayout;
 
-GFX_VertexLayout gfx_vertex_layout_create();
+GFX_VertexLayout gfx_vertex_layout_create(void);
 void gfx_vertex_layout_destroy(const GFX_VertexLayout *layout);
 void gfx_vertex_layout_push_f32(GFX_VertexLayout *layout, u_int32_t count,
                                 GFX_Boolean normalized);
@@ -94,10 +94,10 @@ typedef struct {
   u_int32_t renderer_id;
 } GFX_VertexArray;
 
-GFX_VertexArray gfx_vertex_array_create();
+GFX_VertexArray gfx_vertex_array_create(void);
 void gfx_vertex_array_destroy(const GFX_VertexArray *vao);
 void gfx_vertex_array_bind(const GFX_VertexArray *vao);
-void gfx_vertex_array_unbind();
+void gfx_vertex_array_unbind(void);
 void gfx_vertex_array_add_buffer(const GFX_VertexArray *vao,
                                  const GFX_VertexBuffer *vb,
                                  const GFX_VertexLayout *layout);
@@ -115,7 +115,7 @@ GFX_Shader gfx_shader_create(const char *vert_filepath,
                              const char *frag_filepath);
 void gfx_shader_destroy(const GFX_Shader *shader);
 void gfx_shader_bind(const GFX_Shader *shader);
-void gfx_shader_unbind();
+void gfx_shader_unbind(void);
 u_int32_t gfx_shader_uniform_get_location(const GFX_Shader *shader,
                                           const char *name);
 void gfx_shader_uniform_set_int(const GFX_Shader *shader, const char *name,
@@ -163,7 +163,7 @@ GFX_Texture2D gfx_texture2d_load(const char *filename,
                                  enum GFX_Wrap wrap);
 void gfx_texture2d_destroy(const GFX_Texture2D *texture);
 void gfx_texture2d_bind(const GFX_Texture2D *texture);
-void gfx_texture2d_unbind();
+void gfx_texture2d_unbind(void);
 
 // Geometry3D
 

@@ -29,8 +29,8 @@ int gfx_glfw_errors_log(const char *function, const char *file, int line);
 
 // Error checking gl
 
-void gfx_gl_errors_clear();
-int gfx_gl_errors_check();
+void gfx_gl_errors_clear(void);
+int gfx_gl_errors_check(void);
 int gfx_gl_errors_log(const char *function, const char *file, int line);
 
 // Types
