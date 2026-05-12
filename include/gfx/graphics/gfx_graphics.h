@@ -18,6 +18,7 @@ void gfx_graphics_terminate(void);
 enum GFX_Graphics_Feature {
   GFX_GRAPHICS_FEATURE_DEPTH_TESTING,
   GFX_GRAPHICS_FEATURE_CULL_BACK,
+  GFX_GRAPHICS_FEATURE_ALPHA_BLEND,
 };
 void gfx_graphics_enable(enum GFX_Graphics_Feature);
 

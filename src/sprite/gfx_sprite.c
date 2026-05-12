@@ -25,8 +25,6 @@ GFX_Sprite gfx_sprite_create(GFX_Texture2D *texture_atlas, int offset_x,
   };
 
   // TODO: the size of the mesh should be scaled based on a pixel ratio
-  width /= 16;
-  height /= 16;
   GFX_Vertex2D vertices[4] = {
       gfx_vertex2d_create(-width / 2.0, +height / 2.0, p0[0], p0[1]),
       gfx_vertex2d_create(-width / 2.0, -height / 2.0, p0[0], p1[1]),
@@ -40,6 +38,7 @@ GFX_Sprite gfx_sprite_create(GFX_Texture2D *texture_atlas, int offset_x,
   GFX_Sprite sprite = {
       .quad = quad,
       .texture_atlas = texture_atlas,
+      .model = GLM_MAT4_IDENTITY_INIT,
   };
   return sprite;
 }
@@ -74,6 +73,16 @@ ECS_MOVE(GFX_SpriteRenderer, dst, src, {
 })
 
 // *** SYSTEMS ***
+
+// Sync sprite model and transform
+void _gfx_sys_sprite_sync_transform(ecs_iter_t *it) {
+  GFX_Sprite *sprites = ecs_field(it, GFX_Sprite, 0);
+  GFX_Transform *transforms = ecs_field(it, GFX_Transform, 1);
+
+  for (int i = 0; i < it->count; i++) {
+    glm_mat4_copy(transforms[i], sprites[i].model);
+  }
+}
 
 // Upload the sprites to the renderer
 void _gfx_sys_sprite_upload(ecs_iter_t *it) {
@@ -115,7 +124,6 @@ void _gfx_sys_sprite_draw(ecs_iter_t *it) {
 
   gfx_shader_uniform_set_mat4(&sr->shader, "t_camera_mvp", false,
                               uniforms->t_camera_mvp);
-  gfx_shader_uniform_set_mat4(&sr->shader, "t_model", false, GLM_MAT4_IDENTITY);
   gfx_shader_bind(&sr->shader);
 
   for (int i = 0; i < GFX_SPRITE_LAYERS_COUNT; i++) {
@@ -125,6 +133,7 @@ void _gfx_sys_sprite_draw(ecs_iter_t *it) {
 #endif
     for (long j = 0; j < arrlen(sr->layers[i]); j++) {
       GFX_Sprite *sprite = sr->layers[i][j];
+      gfx_shader_uniform_set_mat4(&sr->shader, "t_model", false, sprite->model);
       gfx_texture2d_bind(sprite->texture_atlas);
       gfx_geometry2d_draw(&sprite->quad);
     }
@@ -147,6 +156,10 @@ void GfxSpriteImport(ecs_world_t *world) {
                     .move = ecs_move(GFX_SpriteRenderer),
                 });
 
+  // Sync systems
+  ECS_SYSTEM(world, _gfx_sys_sprite_sync_transform, EcsOnUpdate, GFX_Sprite, GFX_Transform);
+
+  // Rendering systems
   ECS_SYSTEM(world, _gfx_sys_sprite_upload, GfxStartRender, GFX_Sprite,
              GFX_SpriteLayer);
   ECS_SYSTEM(world, _gfx_sys_sprite_draw, GfxRenderObjects, 0);
@@ -154,5 +167,8 @@ void GfxSpriteImport(ecs_world_t *world) {
   // Create the sprite renderer
   GFX_Shader shader = gfx_shader_create("./assets/shaders/sprite.vert",
                                         "./assets/shaders/sprite.frag");
-  ecs_singleton_set(world, GFX_SpriteRenderer, {.shader = shader});
+  ecs_singleton_set(world, GFX_SpriteRenderer,
+                    {
+                        .shader = shader,
+                    });
 }

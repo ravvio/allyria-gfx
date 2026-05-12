@@ -2,6 +2,7 @@
 
 ECS_COMPONENT_DECLARE(GFX_Camera);
 ECS_COMPONENT_DECLARE(GFX_CameraOrtho);
+ECS_COMPONENT_DECLARE(GFX_CameraPixel);
 
 GFX_Camera gfx_camera_create_ortho(float aspect) {
   GFX_Camera cam = {
@@ -12,6 +13,15 @@ GFX_Camera gfx_camera_create_ortho(float aspect) {
 
   glm_ortho_default(aspect, cam.projection);
   return cam;
+}
+
+void _gfx_sys_camera_sync_pixel(ecs_iter_t *it) {
+  GFX_Camera *cam = ecs_field(it, GFX_Camera, 0);
+  GFX_CameraPixel *pixel = ecs_field(it, GFX_CameraPixel, 1);
+
+  for (int i = 0; i < it->count; ++i) {
+    glm_scale_uni(cam[i].view, 1.0/pixel[i].ratio);
+  }
 }
 
 void _gfx_sys_camera_sync_ortho(ecs_iter_t *it) {
@@ -38,9 +48,12 @@ void GfxCameraImport(ecs_world_t *world) {
 
   ECS_COMPONENT_DEFINE(world, GFX_Camera);
   ECS_COMPONENT_DEFINE(world, GFX_CameraOrtho);
+  ECS_COMPONENT_DEFINE(world, GFX_CameraPixel);
 
-  ECS_SYSTEM(world, _gfx_sys_camera_sync_ortho, EcsPostUpdate, GFX_Camera,
+  ECS_SYSTEM(world, _gfx_sys_camera_sync_ortho, EcsOnStart, GFX_Camera,
              GFX_CameraOrtho);
+  ECS_SYSTEM(world, _gfx_sys_camera_sync_pixel, EcsOnStart, GFX_Camera,
+             GFX_CameraPixel);
   ECS_SYSTEM(world, _gfx_sys_camera_sync_transform, EcsPostUpdate, GFX_Camera,
              GFX_Transform);
 }

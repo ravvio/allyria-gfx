@@ -9,6 +9,7 @@
 typedef struct {
   GFX_Geometry2D quad;
   GFX_Texture2D *texture_atlas;
+  mat4 model;
 } GFX_Sprite;
 extern ECS_COMPONENT_DECLARE(GFX_Sprite);
 

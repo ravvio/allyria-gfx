@@ -41,6 +41,11 @@ typedef struct {
 } GFX_CameraOrtho;
 extern ECS_COMPONENT_DECLARE(GFX_CameraOrtho);
 
+typedef struct {
+  float ratio;
+} GFX_CameraPixel;
+extern ECS_COMPONENT_DECLARE(GFX_CameraPixel);
+
 GFX_Camera gfx_camera_create_ortho(float aspect);
 
 void GfxCameraImport(ecs_world_t *world);

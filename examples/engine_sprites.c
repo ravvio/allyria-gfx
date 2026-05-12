@@ -5,8 +5,7 @@
 
 int main(void) {
   enum GFX_Graphics_Feature graphics_features[] = {
-      GFX_GRAPHICS_FEATURE_DEPTH_TESTING,
-      GFX_GRAPHICS_FEATURE_CULL_BACK,
+    GFX_GRAPHICS_FEATURE_ALPHA_BLEND,
   };
   GFX_ProjectSettings settings = {
       .window_width = 800,
@@ -37,6 +36,7 @@ int main(void) {
               .model = GLM_MAT4_IDENTITY_INIT,
           });
   ecs_set(world, cam, GFX_CameraOrtho, {.aspect = 800.0 / 600.0});
+  ecs_set(world, cam, GFX_CameraPixel, {.ratio = 128.0});
   ecs_set(world, cam, GFX_Transform, GLM_MAT4_IDENTITY_INIT);
 
   // Set main camera
@@ -45,12 +45,17 @@ int main(void) {
   GFX_Texture2D atlas = gfx_texture2d_load(
       "./assets/textures/sprites/sensei.png", GFX_TEXTURE_TYPE_DIFFUSE,
       GFX_TEXTURE_FILTER_NEAREST, GFX_WRAP_REPEAT);
-  GFX_Sprite sprite = gfx_sprite_create(&atlas, 0, 0, 16, 23, 0);
 
-  ecs_entity_t e = ecs_entity(world, {.name = "Sensei"});
-  ecs_set(world, e, GFX_Sprite,
-          {.quad = sprite.quad, .texture_atlas = sprite.texture_atlas});
-  ecs_set(world, e, GFX_SpriteLayer, {0});
+  for (int i = 0; i < 10; ++i) {
+    ecs_entity_t e = ecs_entity(world, {});
+    ecs_add(world, e, GFX_Sprite);
+    GFX_Sprite* s = ecs_get_mut(world, e, GFX_Sprite);
+    *s = gfx_sprite_create(&atlas, 0, 0, 16, 23, 0);
+    ecs_set(world, e, GFX_SpriteLayer, {0});
+    ecs_set(world, e, GFX_Transform, GLM_MAT4_IDENTITY_INIT);
+    GFX_Transform *t = ecs_get_mut(world, e, GFX_Transform);
+    glm_translate_x(*t, 16.0 * i);
+  }
 
   while (ecs_progress(world, 0)) {
   }

@@ -29,6 +29,11 @@ void gfx_graphics_enable(enum GFX_Graphics_Feature feature) {
     GLCall(glEnable(GL_CULL_FACE));
     GLCall(glCullFace(GL_BACK));
     break;
+  case GFX_GRAPHICS_FEATURE_ALPHA_BLEND:
+    // Enable alpha blend
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
+    break;
   }
 }
 
