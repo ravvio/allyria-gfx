@@ -65,16 +65,7 @@ void gfx_geometry3d_destroy(const GFX_Geometry3D *geometry) {
   gfx_index_buffer_destroy(&geometry->_ibo);
 }
 
-void gfx_geometry3d_draw(const GFX_Geometry3D *geometry, const GFX_Shader *shader,
-                     mat4 trasform_projection, mat4 trasform_view,
-                     mat4 trasform_model) {
-  gfx_shader_bind(shader);
-
-  gfx_shader_uniform_set_mat4(shader, "t_model", false, trasform_model);
-  gfx_shader_uniform_set_mat4(shader, "t_view", false, trasform_view);
-  gfx_shader_uniform_set_mat4(shader, "t_projection", false,
-                              trasform_projection);
-
+void gfx_geometry3d_draw(const GFX_Geometry3D *geometry) {
   gfx_vertex_array_bind(&geometry->_vao);
   gfx_index_buffer_bind(&geometry->_ibo);
   glDrawElements(GL_TRIANGLES, geometry->_ibo.count, GL_UNSIGNED_INT, NULL);

@@ -68,6 +68,8 @@ set(GFXSOURCES
 
     ./src/camera/gfx_camera.c
 
+    ./src/sprite/gfx_sprite.c
+
     ./src/gfx.c
     ./src/gfx_engine.c
     ./src/gfx_transform.c
@@ -127,3 +129,4 @@ add_exe(graphics_geometry3d)
 add_exe(graphics_material_std_unlit)
 
 add_exe(engine_basic)
+add_exe(engine_sprites)

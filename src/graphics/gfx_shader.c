@@ -1,4 +1,5 @@
 #include "../../include/gfx/graphics/gfx_gl.h"
+#include <stdio.h>
 
 u_int32_t gfx_shader_compile(u_int32_t type, const char *source,
                              const int source_lenght) {
@@ -102,6 +103,11 @@ void gfx_shader_unbind() { GLCall(glUseProgram(0);) }
 u_int32_t gfx_shader_uniform_get_location(const GFX_Shader *shader,
                                           const char *name) {
   GLCall(u_int32_t location = glGetUniformLocation(shader->renderer_id, name));
+#ifndef GFX_NDEBUG
+  if (location == -1) {
+    fprintf(stderr, "[w] graphics: shader (%s,%s) does not have uniform %s\n", shader->vert_filepath, shader->frag_filepath, name);
+  }
+#endif
   return location;
 }
 
@@ -122,7 +128,7 @@ void gfx_shader_uniform_set_float(const GFX_Shader *shader, const char *name,
 }
 
 void gfx_shader_uniform_set_vec2(const GFX_Shader *shader, const char *name,
-                                 vec2 v) {
+                                 const vec2 v) {
   gfx_shader_bind(shader);
   u_int32_t location = gfx_shader_uniform_get_location(shader, name);
   assert(location != -1);
@@ -130,7 +136,7 @@ void gfx_shader_uniform_set_vec2(const GFX_Shader *shader, const char *name,
 }
 
 void gfx_shader_uniform_set_vec3(const GFX_Shader *shader, const char *name,
-                                 vec3 v) {
+                                 const vec3 v) {
   gfx_shader_bind(shader);
   u_int32_t location = gfx_shader_uniform_get_location(shader, name);
   assert(location != -1);
@@ -138,7 +144,7 @@ void gfx_shader_uniform_set_vec3(const GFX_Shader *shader, const char *name,
 }
 
 void gfx_shader_uniform_set_vec4(const GFX_Shader *shader, const char *name,
-                                 vec4 v) {
+                                 const vec4 v) {
   gfx_shader_bind(shader);
   u_int32_t location = gfx_shader_uniform_get_location(shader, name);
   assert(location != -1);
@@ -146,7 +152,7 @@ void gfx_shader_uniform_set_vec4(const GFX_Shader *shader, const char *name,
 }
 
 void gfx_shader_uniform_set_mat4(const GFX_Shader *shader, const char *name,
-                                 int transpose, mat4 value) {
+                                 int transpose, const mat4 value) {
   gfx_shader_bind(shader);
   u_int32_t location = gfx_shader_uniform_get_location(shader, name);
   assert(location != -1);

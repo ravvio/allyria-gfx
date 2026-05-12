@@ -1,4 +1,5 @@
 #include "../include/gfx/gfx.h"
+#include <stdio.h>
 
 int main(void) {
   enum GFX_Graphics_Feature graphics_features[] = {
@@ -16,7 +17,7 @@ int main(void) {
   ecs_world_t *world = ecs_init();
 
   if (gfx_init(&settings, world) != GFX_ERR_OK) {
-    gfx_terminate();
+    gfx_terminate(world);
     return 1;
   }
 
@@ -26,6 +27,6 @@ int main(void) {
   while (ecs_progress(world, 0)) {
   }
 
-  gfx_terminate();
+  gfx_terminate(world);
   return 0;
 }

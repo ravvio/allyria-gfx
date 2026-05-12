@@ -57,19 +57,10 @@ void gfx_geometry2d_destroy(const GFX_Geometry2D *geometry) {
   gfx_index_buffer_destroy(&geometry->_ibo);
 }
 
-void gfx_geometry2d_draw(const GFX_Geometry2D *geometry, const GFX_Shader *shader,
-                     mat4 trasform_model, mat4 trasform_view,
-                     mat4 trasform_projection) {
-  gfx_shader_bind(shader);
-
-  gfx_shader_uniform_set_mat4(shader, "t_projection", false,
-                              trasform_projection);
-  gfx_shader_uniform_set_mat4(shader, "t_view", false, trasform_view);
-  gfx_shader_uniform_set_mat4(shader, "t_model", false, trasform_model);
-
+void gfx_geometry2d_draw(const GFX_Geometry2D *geometry) {
   gfx_vertex_array_bind(&geometry->_vao);
   gfx_index_buffer_bind(&geometry->_ibo);
-  glDrawElements(GL_TRIANGLES, geometry->_ibo.count, GL_UNSIGNED_INT, NULL);
+  GLCall(glDrawElements(GL_TRIANGLES, geometry->_ibo.count, GL_UNSIGNED_INT, NULL));
 }
 
 GFX_Geometry2D gfx_geometry2d_shape_quad_create(float_t width, float_t height) {

@@ -123,13 +123,13 @@ void gfx_shader_uniform_set_int(const GFX_Shader *shader, const char *name,
 void gfx_shader_uniform_set_float(const GFX_Shader *shader, const char *name,
                                   float v);
 void gfx_shader_uniform_set_vec2(const GFX_Shader *shader, const char *name,
-                                 vec2 v);
+                                 const vec2 v);
 void gfx_shader_uniform_set_vec3(const GFX_Shader *shader, const char *name,
-                                 vec3 v);
+                                 const vec3 v);
 void gfx_shader_uniform_set_vec4(const GFX_Shader *shader, const char *name,
-                                 vec4 v);
+                                 const vec4 v);
 void gfx_shader_uniform_set_mat4(const GFX_Shader *shader, const char *name,
-                                 int transpose, mat4 value);
+                                 int transpose, const mat4 value);
 
 // Texture
 
@@ -190,9 +190,7 @@ typedef struct {
 GFX_Geometry3D gfx_geometry3d_create(u_int32_t vertices_count, GFX_Vertex3D *vertices,
                              u_int32_t indices_count, u_int32_t *indices);
 void gfx_geometry3d_destroy(const GFX_Geometry3D *geometry);
-void gfx_geometry3d_draw(const GFX_Geometry3D *geometry, const GFX_Shader *shader,
-                     mat4 trasform_projection, mat4 trasform_view,
-                     mat4 trasform_model);
+void gfx_geometry3d_draw(const GFX_Geometry3D *geometry);
 
 GFX_Geometry3D gfx_geometry3d_shape_quad_create(float_t width, float_t height);
 GFX_Geometry3D gfx_geometry3d_shape_cuboid_create(float_t width, float_t height,
@@ -220,9 +218,7 @@ typedef struct {
 GFX_Geometry2D gfx_geometry2d_create(u_int32_t vertices_count, GFX_Vertex2D *vertices,
                              u_int32_t indices_count, u_int32_t *indices);
 void gfx_geometry2d_destroy(const GFX_Geometry2D *geometry);
-void gfx_geometry2d_draw(const GFX_Geometry2D *geometry, const GFX_Shader *shader,
-                     mat4 model, mat4 view,
-                     mat4 projection);
+void gfx_geometry2d_draw(const GFX_Geometry2D *geometry);
 
 GFX_Geometry2D gfx_geometry2d_shape_quad_create(float_t width, float_t height);
 

@@ -1,6 +1,10 @@
+#ifndef GFX_DECL
+#define GFX_DECL
+
 // Include libraries
 #include "gfx_common.h"
 #include "graphics/gfx_graphics.h"
+#include "sprite/gfx_sprite.h"
 
 // Setup
 
@@ -14,7 +18,7 @@ typedef struct {
 } GFX_ProjectSettings;
 
 GFX_Error gfx_init(const GFX_ProjectSettings *settings, ecs_world_t *world);
-void gfx_terminate(void);
+void gfx_terminate(ecs_world_t *world);
 
 // Transform
 
@@ -32,7 +36,12 @@ typedef struct {
 } GFX_Camera;
 extern ECS_COMPONENT_DECLARE(GFX_Camera);
 
-void gfx_camera_create_ortho(float aspect);
+typedef struct {
+  float aspect;
+} GFX_CameraOrtho;
+extern ECS_COMPONENT_DECLARE(GFX_CameraOrtho);
+
+GFX_Camera gfx_camera_create_ortho(float aspect);
 
 void GfxCameraImport(ecs_world_t *world);
 
@@ -54,11 +63,19 @@ void gfx_surface_sync(GFX_Surface *surface);
 
 // Renderer
 
+extern ECS_TAG_DECLARE(GfxPreRender);
+extern ECS_TAG_DECLARE(GfxStartRender);
+extern ECS_TAG_DECLARE(GfxRenderObjects);
+extern ECS_TAG_DECLARE(GfxRenderGizmos);
+extern ECS_TAG_DECLARE(GfxRenderGUI);
+extern ECS_TAG_DECLARE(GfxEndRender);
+extern ECS_TAG_DECLARE(GfxPostRender);
+
 typedef struct {
-  // The camera model * view * projection
-  mat4 camera_mvp;
-} GFX_Uniform;
-extern ECS_COMPONENT_DECLARE(GFX_Uniform);
+  // The camera projection * view * model
+  mat4 t_camera_mvp;
+} GFX_Uniforms;
+extern ECS_COMPONENT_DECLARE(GFX_Uniforms);
 
 void GfxRendererImport(ecs_world_t *world);
 
@@ -72,7 +89,11 @@ extern ECS_COMPONENT_DECLARE(GFX_Viewport);
 
 typedef struct {
   ecs_entity_t surface_id;
+  ecs_entity_t uniforms_id;
+  ecs_entity_t main_camera_id;
 } GFX_Engine;
 extern ECS_COMPONENT_DECLARE(GFX_Engine);
 
 void GfxEngineImport(ecs_world_t *world);
+
+#endif

@@ -1,5 +1,7 @@
 #include <assert.h>
+#include <stdio.h>
 #define STB_IMAGE_IMPLEMENTATION
+#define STB_DS_IMPLEMENTATION
 
 #include "../include/gfx/gfx.h"
 
@@ -28,16 +30,27 @@ GFX_Error gfx_init(const GFX_ProjectSettings *settings, ecs_world_t *world) {
   ecs_entity_t surface_id =
       ecs_insert(world, ecs_value(GFX_Surface, {.window = win}));
 
+  // Add uniforms entity
+  ecs_entity_t uniforms_id = ecs_insert(
+      world, ecs_value(GFX_Uniforms, {.t_camera_mvp = GLM_MAT4_IDENTITY_INIT}));
+
   // Add engine singleton
   ecs_singleton_set(world, GFX_Engine,
                     {
                         .surface_id = surface_id,
+                        .uniforms_id = uniforms_id,
                     });
 
   return GFX_ERR_OK;
 }
 
-void gfx_terminate() {
+void gfx_terminate(ecs_world_t *world) {
+  // Stop ecs
+  if (world) {
+    ecs_fini(world);
+    fprintf(stderr, "[i] system: ecs world terminated\n");
+  }
   // Stop graphics
   gfx_graphics_terminate();
+  fprintf(stderr, "[i] system: graphics terminated\n");
 }

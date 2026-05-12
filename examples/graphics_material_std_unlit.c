@@ -11,7 +11,7 @@ int main(void) {
   gfx_graphics_enable(GFX_GRAPHICS_FEATURE_CULL_BACK);
 
   GFX_Texture2D tex = gfx_texture2d_load(
-      "./assets/textures/tiles.jpg", GFX_TEXTURE_TYPE_DIFFUSE,
+      "./assets/textures/uv_checker_bw.png", GFX_TEXTURE_TYPE_DIFFUSE,
       GFX_TEXTURE_FILTER_LINEAR, GFX_WRAP_REPEAT);
 
   GFX_Geometry3D geometry = gfx_geometry3d_shape_cuboid_create(1.0, 1.0, 1.0);
@@ -32,17 +32,22 @@ int main(void) {
   GFX_Shader shader =
       gfx_shader_create("./assets/shaders/mesh3d_std_unlit.vert",
                         "./assets/shaders/mesh3d_std_unlit.frag");
-  GFX_Color_RGBA albedo = { 0.5, 1.0, 0.0, 1.0 };
+  GFX_Color_RGBA albedo = { 0.5, 0.5, 0.0, 1.0 };
   gfx_shader_uniform_set_vec4(&shader, "material.albedo", albedo);
   // This is not needed as the default albedoMap is 0
   gfx_shader_uniform_set_int(&shader, "material.albedoMap", 0);
 
+  gfx_shader_uniform_set_mat4(&shader, "t_projection", false, transform_projection);
+  gfx_shader_uniform_set_mat4(&shader, "t_view", false, transform_view);
+  gfx_shader_uniform_set_mat4(&shader, "t_model", false, transform_model);
+
   while (!gfx_window_should_close(win)) {
     gfx_buffers_clear();
 
+    gfx_shader_bind(&shader);
     gfx_texture2d_bind(&tex);
-    gfx_geometry3d_draw(&geometry, &shader, transform_projection, transform_view,
-                    transform_model);
+
+    gfx_geometry3d_draw(&geometry);
 
     gfx_window_swap_buffers(win);
     gfx_window_events_poll();

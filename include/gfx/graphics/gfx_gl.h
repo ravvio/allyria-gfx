@@ -12,7 +12,7 @@
   gfx_gl_errors_log(#x, __FILE__, __LINE__);
 #endif
 
-#ifdef GFX_DEBUG
+#ifdef GFX_NDEBUG
 #define GLFWCall(x) x;
 #else
 #define GLFWCall(x)                                                            \

@@ -7,7 +7,7 @@ GFX_Texture2D gfx_texture2d_load(const char *filename,
                                  enum GFX_Wrap wrap) {
   // Get image data
   int width, height, channels;
-  u_int8_t *data = stbi_load(filename, &width, &height, &channels, 3);
+  u_int8_t *data = stbi_load(filename, &width, &height, &channels, 4);
 
   if (!data) {
     fprintf(stderr, "[e] failed to load texture image: %s\n| %s", filename,
@@ -35,7 +35,7 @@ GFX_Texture2D gfx_texture2d_load(const char *filename,
                          gfx_gl_filter(filter)));
 
   // Add image data
-  GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
+  GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA,
                GL_UNSIGNED_BYTE, data));
   GLCall(glGenerateMipmap(GL_TEXTURE_2D));
 

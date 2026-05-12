@@ -12,6 +12,7 @@
 #include "../cglm/cglm.h"
 #include "../flecs/flecs.h"
 
+#include "../stb_ds.h"
 #include "../stb_image.h"
 
 // Definitions

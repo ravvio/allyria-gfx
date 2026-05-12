@@ -2,13 +2,13 @@
 layout (location = 0) in vec2 position;
 layout (location = 1) in vec2 texCoords;
 
-out vec2 uv;
+uniform mat4 t_camera_mvp;
+uniform mat4 t_model;
 
-uniform mat4 model;
-uniform mat4 projection;
+out vec2 TexCoords;
 
 void main()
 {
-    uv = texCoords;
-    gl_Position = projection * view * model * vec4(vertex.xy, 0.0, 1.0);
+    TexCoords = texCoords;
+    gl_Position = t_camera_mvp * t_model * vec4(position.xy, 0.0, 1.0);
 }
