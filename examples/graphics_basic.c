@@ -1,6 +1,6 @@
 #include "../include/gfx/graphics/gfx_graphics.h"
 
-int main() {
+int main(void) {
     if (gfx_graphics_init() != GFX_ERR_OK) {
         gfx_graphics_terminate();
         return 1;
@@ -12,12 +12,12 @@ int main() {
     gfx_color_buffer_set_clear(color);
 
     while (!gfx_window_should_close(win)) {
-        gfx_buffers_clear();
-
-        gfx_window_swap_buffers(win);
+        gfx_frame_begin(win);
+        gfx_frame_end(win);
         gfx_window_events_poll();
     }
 
+    gfx_window_destroy(win);
     gfx_graphics_terminate();
     return 0;
 }

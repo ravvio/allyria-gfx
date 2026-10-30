@@ -1,23 +1,16 @@
-#include "../../include/gfx/graphics/gfx_gl.h"
+#include "../../include/gfx/graphics/gfx_wgpu.h"
 
-static GFX_Boolean __gfx_vertex3d_layout_init = GFX_FALSE;
-static GFX_VertexLayout __gfx_vertex3d_layout;
-
-GFX_VertexLayout *_gfx_vertex3d_layout() {
-  if (__gfx_vertex3d_layout_init == GFX_TRUE) {
-    return &__gfx_vertex3d_layout;
+const GFX_VertexLayout *gfx_geometry3d_layout(void) {
+  static GFX_VertexLayout layout = {0};
+  if (layout.count == 0) {
+    // Position
+    gfx_vertex_layout_push_f32(&layout, 3);
+    // Normal
+    gfx_vertex_layout_push_f32(&layout, 3);
+    // UV
+    gfx_vertex_layout_push_f32(&layout, 2);
   }
-
-  __gfx_vertex3d_layout = gfx_vertex_layout_create();
-  // Position
-  gfx_vertex_layout_push_f32(&__gfx_vertex3d_layout, 3, false);
-  // Normal
-  gfx_vertex_layout_push_f32(&__gfx_vertex3d_layout, 3, false);
-  // UV
-  gfx_vertex_layout_push_f32(&__gfx_vertex3d_layout, 2, false);
-
-  fprintf(stderr, "[i] vertex3D layout initialized\n");
-  return &__gfx_vertex3d_layout;
+  return &layout;
 }
 
 GFX_Vertex3D gfx_vertex3d_create(float position_x, float position_y,
@@ -40,47 +33,39 @@ GFX_Vertex3D gfx_vertex3d_create(float position_x, float position_y,
   return vertex;
 }
 
+// Upload the vertices and indices, the arrays can be freed afterwards
 GFX_Geometry3D gfx_geometry3d_create(u_int32_t vertices_count, GFX_Vertex3D *vertices,
                              u_int32_t indices_count, u_int32_t *indices) {
-  GFX_VertexArray vao = gfx_vertex_array_create();
-  GFX_VertexBuffer vbo =
-      gfx_vertex_buffer_create(vertices_count * sizeof(GFX_Vertex3D), vertices);
-  GFX_IndexBuffer ibo = gfx_index_buffer_create(indices_count, indices);
-
-  gfx_vertex_array_add_buffer(&vao, &vbo, _gfx_vertex3d_layout());
-
   GFX_Geometry3D geometry = {
-      .vertices = vertices,
-      .indices = indices,
-      ._vao = vao,
-      ._vbo = vbo,
-      ._ibo = ibo,
+      ._vbo = gfx_vertex_buffer_create(vertices_count * sizeof(GFX_Vertex3D),
+                                       vertices),
+      ._ibo = gfx_index_buffer_create(indices_count, indices),
   };
   return geometry;
 }
 
 void gfx_geometry3d_destroy(const GFX_Geometry3D *geometry) {
-  gfx_vertex_array_destroy(&geometry->_vao);
   gfx_vertex_buffer_destroy(&geometry->_vbo);
   gfx_index_buffer_destroy(&geometry->_ibo);
 }
 
+// Draw with the bound pipeline, between gfx_frame_begin and gfx_frame_end
 void gfx_geometry3d_draw(const GFX_Geometry3D *geometry) {
-  gfx_vertex_array_bind(&geometry->_vao);
+  gfx_vertex_buffer_bind(&geometry->_vbo);
   gfx_index_buffer_bind(&geometry->_ibo);
-  glDrawElements(GL_TRIANGLES, geometry->_ibo.count, GL_UNSIGNED_INT, NULL);
+  gfx_draw_indexed(geometry->_ibo.count);
 }
 
 GFX_Geometry3D gfx_geometry3d_shape_quad_create(float_t width, float_t height) {
   GFX_Vertex3D vertices[4] = {
       // front
-      gfx_vertex3d_create(-width / 2.0, +height / 2.0, 0.0, 0.0, 0.0, -1.0, 0.0,
+      gfx_vertex3d_create(-width / 2.0, +height / 2.0, 0.0, 0.0, 0.0, +1.0, 0.0,
                           1.0),
-      gfx_vertex3d_create(-width / 2.0, -height / 2.0, 0.0, 0.0, 0.0, -1.0, 0.0,
+      gfx_vertex3d_create(-width / 2.0, -height / 2.0, 0.0, 0.0, 0.0, +1.0, 0.0,
                           0.0),
-      gfx_vertex3d_create(+width / 2.0, -height / 2.0, 0.0, 0.0, 0.0, -1.0, 1.0,
+      gfx_vertex3d_create(+width / 2.0, -height / 2.0, 0.0, 0.0, 0.0, +1.0, 1.0,
                           0.0),
-      gfx_vertex3d_create(+width / 2.0, +height / 2.0, 0.0, 0.0, 0.0, -1.0, 1.0,
+      gfx_vertex3d_create(+width / 2.0, +height / 2.0, 0.0, 0.0, 0.0, +1.0, 1.0,
                           1.0),
   };
   u_int32_t indices[6] = {0, 1, 2, 2, 3, 0};
@@ -93,13 +78,13 @@ GFX_Geometry3D gfx_geometry3d_shape_cuboid_create(float_t width, float_t height,
   GFX_Vertex3D vertices[24] = {
       // front
       gfx_vertex3d_create(-width / 2.0, +height / 2.0, +depth / 2.0, 0.0, 0.0,
-                          -1.0, 0.0, 1.0),
+                          +1.0, 0.0, 1.0),
       gfx_vertex3d_create(-width / 2.0, -height / 2.0, +depth / 2.0, 0.0, 0.0,
-                          -1.0, 0.0, 0.0),
+                          +1.0, 0.0, 0.0),
       gfx_vertex3d_create(+width / 2.0, -height / 2.0, +depth / 2.0, 0.0, 0.0,
-                          -1.0, 1.0, 0.0),
+                          +1.0, 1.0, 0.0),
       gfx_vertex3d_create(+width / 2.0, +height / 2.0, +depth / 2.0, 0.0, 0.0,
-                          -1.0, 1.0, 1.0),
+                          +1.0, 1.0, 1.0),
       // right
       gfx_vertex3d_create(+width / 2.0, +height / 2.0, +depth / 2.0, +1.0, 0.0,
                           0.0, 0.0, 1.0),
@@ -111,13 +96,13 @@ GFX_Geometry3D gfx_geometry3d_shape_cuboid_create(float_t width, float_t height,
                           0.0, 1.0, 1.0),
       // back
       gfx_vertex3d_create(+width / 2.0, +height / 2.0, -depth / 2.0, 0.0, 0.0,
-                          +1.0, 0.0, 1.0),
+                          -1.0, 0.0, 1.0),
       gfx_vertex3d_create(+width / 2.0, -height / 2.0, -depth / 2.0, 0.0, 0.0,
-                          +1.0, 0.0, 0.0),
+                          -1.0, 0.0, 0.0),
       gfx_vertex3d_create(-width / 2.0, -height / 2.0, -depth / 2.0, 0.0, 0.0,
-                          +1.0, 1.0, 0.0),
+                          -1.0, 1.0, 0.0),
       gfx_vertex3d_create(-width / 2.0, +height / 2.0, -depth / 2.0, 0.0, 0.0,
-                          +1.0, 1.0, 1.0),
+                          -1.0, 1.0, 1.0),
       // left
       gfx_vertex3d_create(-width / 2.0, +height / 2.0, -depth / 2.0, -1.0, 0.0,
                           0.0, 0.0, 1.0),
@@ -161,11 +146,4 @@ GFX_Geometry3D gfx_geometry3d_shape_cuboid_create(float_t width, float_t height,
                            20, 21, 22, 22, 23, 20};
 
   return gfx_geometry3d_create(24, vertices, 36, indices);
-}
-
-void gfx_geometry3d_import(ecs_world_t *world) {
-  ECS_MODULE(world, gfx_geometry3d);
-  ecs_set_name_prefix(world, "gfx_");
-
-  ECS_COMPONENT(world, GFX_Geometry3D);
 }

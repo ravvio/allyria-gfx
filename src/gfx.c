@@ -47,6 +47,12 @@ GFX_Error gfx_init(const GFX_ProjectSettings *settings, ecs_world_t *world) {
   return GFX_ERR_OK;
 }
 
+// Run the main loop until the window should close
+void gfx_run(ecs_world_t *world) {
+  while (ecs_progress(world, 0)) {
+  }
+}
+
 void gfx_terminate(ecs_world_t *world) {
   // Stop ecs
   if (world) {

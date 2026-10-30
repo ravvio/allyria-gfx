@@ -24,8 +24,7 @@ int main(void) {
   ECS_IMPORT(world, GfxTransform);
   ECS_IMPORT(world, GfxCamera);
 
-  while (ecs_progress(world, 0)) {
-  }
+  gfx_run(world);
 
   gfx_terminate(world);
   return 0;

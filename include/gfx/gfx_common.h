@@ -5,10 +5,8 @@
 #include <math.h>
 #include <sys/types.h>
 
-#define GLAD_GL_IMPLEMENTATION
-#include "../glad/gl.h"
-#include <GLFW/glfw3.h>
-
+// WebGPU clip space depth is [0, 1]
+#define CGLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "../cglm/cglm.h"
 #include "../flecs/flecs.h"
 
@@ -28,5 +26,6 @@ typedef u_int8_t GFX_Error;
 #define GFX_ERR_OK 0
 #define GFX_ERR_FAILED 1 // Generic error
 #define GFX_ERR_GLFW 2   // External libraries failure
+#define GFX_ERR_WGPU 3   // WebGPU instance / adapter / device failure
 
 #endif

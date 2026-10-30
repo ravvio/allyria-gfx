@@ -1,4 +1,5 @@
-#include "../../include/gfx/graphics/gfx_gl.h"
+#include "../../include/gfx/graphics/gfx_wgpu.h"
+#include <stdio.h>
 
 void gfx_glfw_errors_clear() {
   while (glfwGetError(NULL) != GLFW_NO_ERROR) {

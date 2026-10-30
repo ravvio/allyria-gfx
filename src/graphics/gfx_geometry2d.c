@@ -1,21 +1,14 @@
-#include "../../include/gfx/graphics/gfx_gl.h"
+#include "../../include/gfx/graphics/gfx_wgpu.h"
 
-static GFX_Boolean __gfx_vertex2d_layout_init = GFX_FALSE;
-static GFX_VertexLayout __gfx_vertex2d_layout;
-
-GFX_VertexLayout *_gfx_vertex2d_layout() {
-  if (__gfx_vertex2d_layout_init == GFX_TRUE) {
-    return &__gfx_vertex2d_layout;
+const GFX_VertexLayout *gfx_geometry2d_layout(void) {
+  static GFX_VertexLayout layout = {0};
+  if (layout.count == 0) {
+    // Position
+    gfx_vertex_layout_push_f32(&layout, 2);
+    // UV
+    gfx_vertex_layout_push_f32(&layout, 2);
   }
-
-  __gfx_vertex2d_layout = gfx_vertex_layout_create();
-  // Position
-  gfx_vertex_layout_push_f32(&__gfx_vertex2d_layout, 2, false);
-  // UV
-  gfx_vertex_layout_push_f32(&__gfx_vertex2d_layout, 2, false);
-
-  fprintf(stderr, "[i] vertex2D layout initialized\n");
-  return &__gfx_vertex2d_layout;
+  return &layout;
 }
 
 GFX_Vertex2D gfx_vertex2d_create(float position_x, float position_y, float uv_x, float uv_y) {
@@ -32,35 +25,27 @@ GFX_Vertex2D gfx_vertex2d_create(float position_x, float position_y, float uv_x,
   return vertex;
 }
 
+// Upload the vertices and indices, the arrays can be freed afterwards
 GFX_Geometry2D gfx_geometry2d_create(u_int32_t vertices_count, GFX_Vertex2D *vertices,
                              u_int32_t indices_count, u_int32_t *indices) {
-  GFX_VertexArray vao = gfx_vertex_array_create();
-  GFX_VertexBuffer vbo =
-      gfx_vertex_buffer_create(vertices_count * sizeof(GFX_Vertex2D), vertices);
-  GFX_IndexBuffer ibo = gfx_index_buffer_create(indices_count, indices);
-
-  gfx_vertex_array_add_buffer(&vao, &vbo, _gfx_vertex2d_layout());
-
   GFX_Geometry2D geometry = {
-      .vertices = vertices,
-      .indices = indices,
-      ._vao = vao,
-      ._vbo = vbo,
-      ._ibo = ibo,
+      ._vbo = gfx_vertex_buffer_create(vertices_count * sizeof(GFX_Vertex2D),
+                                       vertices),
+      ._ibo = gfx_index_buffer_create(indices_count, indices),
   };
   return geometry;
 }
 
 void gfx_geometry2d_destroy(const GFX_Geometry2D *geometry) {
-  gfx_vertex_array_destroy(&geometry->_vao);
   gfx_vertex_buffer_destroy(&geometry->_vbo);
   gfx_index_buffer_destroy(&geometry->_ibo);
 }
 
+// Draw with the bound pipeline, between gfx_frame_begin and gfx_frame_end
 void gfx_geometry2d_draw(const GFX_Geometry2D *geometry) {
-  gfx_vertex_array_bind(&geometry->_vao);
+  gfx_vertex_buffer_bind(&geometry->_vbo);
   gfx_index_buffer_bind(&geometry->_ibo);
-  GLCall(glDrawElements(GL_TRIANGLES, geometry->_ibo.count, GL_UNSIGNED_INT, NULL));
+  gfx_draw_indexed(geometry->_ibo.count);
 }
 
 GFX_Geometry2D gfx_geometry2d_shape_quad_create(float_t width, float_t height) {

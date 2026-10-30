@@ -19,6 +19,7 @@ typedef struct {
 
 GFX_Error gfx_init(const GFX_ProjectSettings *settings, ecs_world_t *world);
 void gfx_terminate(ecs_world_t *world);
+void gfx_run(ecs_world_t *world);
 
 // Transform
 

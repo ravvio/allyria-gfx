@@ -43,24 +43,23 @@ int main(void) {
   // Set main camera
   engine->main_camera_id = cam;
 
-  GFX_Texture2D atlas = gfx_texture2d_load(
-      "./assets/textures/sprites/sensei.png", GFX_TEXTURE_TYPE_DIFFUSE,
-      GFX_TEXTURE_FILTER_NEAREST, GFX_WRAP_REPEAT);
+  GFX_Texture2D atlas =
+      gfx_texture2d_load("./assets/textures/sprites/sensei.png",
+                         GFX_TEXTURE_FILTER_NEAREST, GFX_WRAP_REPEAT);
 
   for (int i = 0; i < 10; ++i) {
-    ecs_entity_t e = ecs_entity(world, {});
-    ecs_add(world, e, GFX_Sprite);
-    GFX_Sprite* s = ecs_get_mut(world, e, GFX_Sprite);
-    *s = gfx_sprite_create(&atlas, 0, 0, 16, 23, 0);
+    ecs_entity_t e = ecs_new(world);
+    GFX_Sprite sprite = gfx_sprite_create(&atlas, 0, 0, 16, 23);
+    ecs_set_ptr(world, e, GFX_Sprite, &sprite);
     ecs_set(world, e, GFX_SpriteLayer, {0});
     ecs_set(world, e, GFX_Transform, GLM_MAT4_IDENTITY_INIT);
     GFX_Transform *t = ecs_get_mut(world, e, GFX_Transform);
     glm_translate_x(*t, 16.0 * i);
   }
 
-  while (ecs_progress(world, 0)) {
-  }
+  gfx_run(world);
 
+  gfx_texture2d_destroy(&atlas);
   gfx_terminate(world);
   return 0;
 }

@@ -7,31 +7,36 @@ int main(void) {
   }
 
   GFX_Window *win = gfx_window_init(800, 600, "Geometry3D Example");
+  if (win == NULL) {
+    gfx_graphics_terminate();
+    return 1;
+  }
   gfx_graphics_enable(GFX_GRAPHICS_FEATURE_DEPTH_TESTING);
   gfx_graphics_enable(GFX_GRAPHICS_FEATURE_CULL_BACK);
 
   GFX_Geometry3D geometry = gfx_geometry3d_shape_quad_create(1.0, 1.0);
-  GFX_Shader shader = gfx_shader_create("./assets/shaders/mesh3d.vert",
-                                        "./assets/shaders/mesh3d.frag");
-  mat4 transform_model = GLM_MAT4_IDENTITY_INIT;
-  mat4 transform_view = GLM_MAT4_IDENTITY_INIT;
-  mat4 transform_projection = GLM_MAT4_IDENTITY_INIT;
+  GFX_Shader shader = gfx_shader_create("./assets/shaders/mesh3d.wgsl");
+  GFX_Pipeline pipeline =
+      gfx_pipeline_create(&shader, gfx_geometry3d_layout(), NULL);
 
-  gfx_shader_uniform_set_mat4(&shader, "t_projection", false, transform_projection);
-  gfx_shader_uniform_set_mat4(&shader, "t_view", false, transform_view);
-  gfx_shader_uniform_set_mat4(&shader, "t_model", false, transform_model);
+  // Identity camera, the quad covers the middle of the screen
+  mat4 model = GLM_MAT4_IDENTITY_INIT;
 
   while (!gfx_window_should_close(win)) {
-    gfx_buffers_clear();
+    gfx_frame_begin(win);
 
-    gfx_shader_bind(&shader);
+    gfx_pipeline_bind(&pipeline);
+    gfx_draw_set_model(model);
     gfx_geometry3d_draw(&geometry);
 
-    gfx_window_swap_buffers(win);
+    gfx_frame_end(win);
     gfx_window_events_poll();
   }
 
+  gfx_pipeline_destroy(&pipeline);
+  gfx_shader_destroy(&shader);
   gfx_geometry3d_destroy(&geometry);
+  gfx_window_destroy(win);
   gfx_graphics_terminate();
   return 0;
 }

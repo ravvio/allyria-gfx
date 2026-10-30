@@ -30,21 +30,27 @@ void _gfx_sys_pre_render(ecs_iter_t *it) {
     glm_mat4_mul(cam->projection, cam->view, uniforms->t_camera_mvp);
     glm_mat4_mul(uniforms->t_camera_mvp, cam->model, uniforms->t_camera_mvp);
   }
+  gfx_frame_set_view_projection(uniforms->t_camera_mvp);
 
 #ifdef GFX_VERBOSE
   printf("[i] sys_pre_render: done\n");
 #endif
 }
 
-// Clear buffers and start drawing
-void _gfx_sys_start_render(ecs_iter_t *it) { gfx_buffers_clear(); }
+// Clear the frame and start drawing
+void _gfx_sys_start_render(ecs_iter_t *it) {
+  const GFX_Engine *engine = ecs_singleton_get(it->world, GFX_Engine);
+  const GFX_Surface *surface =
+      ecs_get(it->world, engine->surface_id, GFX_Surface);
+  gfx_frame_begin(surface->window);
+}
 
-// End render, swap buffers
+// End render, submit and present
 void _gfx_sys_end_render(ecs_iter_t *it) {
   const GFX_Engine *engine = ecs_singleton_get(it->world, GFX_Engine);
-  GFX_Surface *surface =
-      ecs_get_mut(it->world, engine->surface_id, GFX_Surface);
-  gfx_window_swap_buffers(surface->window);
+  const GFX_Surface *surface =
+      ecs_get(it->world, engine->surface_id, GFX_Surface);
+  gfx_frame_end(surface->window);
 }
 
 // Poll events
