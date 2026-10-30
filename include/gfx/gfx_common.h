@@ -20,7 +20,7 @@
 typedef u_int8_t GFX_Boolean;
 
 #define GFX_TRUE 1
-#define GFX_FALSE 2
+#define GFX_FALSE 0
 
 // Error
 

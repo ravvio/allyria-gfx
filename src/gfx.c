@@ -15,6 +15,9 @@ GFX_Error gfx_init(const GFX_ProjectSettings *settings, ecs_world_t *world) {
   // Create the window
   GFX_Window *win = gfx_window_init(
       settings->window_width, settings->window_height, settings->window_name);
+  if (!win) {
+    return GFX_ERR_GLFW;
+  }
   // Enable features
   for (int i = 0; i < settings->graphics_features_count; ++i) {
     gfx_graphics_enable(settings->graphics_features[i]);

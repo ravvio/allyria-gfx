@@ -45,7 +45,7 @@ GFX_Window *gfx_window_init(int w, int h, const char *window_name) {
 
   // Create a window
   GLFWCall(GFX_Window *window =
-               glfwCreateWindow(800, 600, window_name, NULL, NULL));
+               glfwCreateWindow(w, h, window_name, NULL, NULL));
   if (!window) {
     return NULL;
   }
