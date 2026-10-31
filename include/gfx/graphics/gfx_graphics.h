@@ -49,12 +49,12 @@ typedef struct {
 } GFX_VertexBuffer;
 
 // data can be NULL to only allocate
-GFX_VertexBuffer gfx_vertex_buffer_create(u_int32_t size, const void *data);
+GFX_VertexBuffer gfx_vertex_buffer_create(uint32_t size, const void *data);
 void gfx_vertex_buffer_destroy(const GFX_VertexBuffer *vb);
 // Overwrite the start of the buffer, like uniforms the last write of the
 // frame wins
 void gfx_vertex_buffer_write(const GFX_VertexBuffer *vb, const void *data,
-                             u_int32_t size);
+                             uint32_t size);
 void gfx_vertex_buffer_bind(const GFX_VertexBuffer *vb);
 
 // Index Buffer (u32 indices)
@@ -62,13 +62,13 @@ void gfx_vertex_buffer_bind(const GFX_VertexBuffer *vb);
 typedef struct {
   WGPUBuffer buffer;
   // Number of indices inside our buffer
-  u_int32_t count;
+  uint32_t count;
 } GFX_IndexBuffer;
 
-GFX_IndexBuffer gfx_index_buffer_create(u_int32_t count, const u_int32_t *data);
+GFX_IndexBuffer gfx_index_buffer_create(uint32_t count, const uint32_t *data);
 void gfx_index_buffer_destroy(const GFX_IndexBuffer *ib);
 void gfx_index_buffer_bind(const GFX_IndexBuffer *ib);
-u_int32_t gfx_index_buffer_get_count(const GFX_IndexBuffer *ib);
+uint32_t gfx_index_buffer_get_count(const GFX_IndexBuffer *ib);
 
 // Vertex Layout, zero initialize then push attributes (shader locations 0..n)
 
@@ -77,12 +77,12 @@ u_int32_t gfx_index_buffer_get_count(const GFX_IndexBuffer *ib);
 typedef struct {
   // Zero advances per vertex, WGPUVertexStepMode_Instance per instance
   WGPUVertexStepMode step;
-  u_int32_t count;
-  u_int32_t stride;
+  uint32_t count;
+  uint32_t stride;
   WGPUVertexAttribute attributes[GFX_VERTEX_LAYOUT_MAX_ATTRIBUTES];
 } GFX_VertexLayout;
 
-void gfx_vertex_layout_push_f32(GFX_VertexLayout *layout, u_int32_t count);
+void gfx_vertex_layout_push_f32(GFX_VertexLayout *layout, uint32_t count);
 
 // Shader, a WGSL file with entry points vs_main and fs_main
 
@@ -121,11 +121,11 @@ void gfx_draw_set_model(mat4 model);
 
 // Draw, between gfx_frame_begin and gfx_frame_end
 
-void gfx_draw_indexed(u_int32_t count);
+void gfx_draw_indexed(uint32_t count);
 // Without index buffer, instances read per-instance vertex buffers from
 // first_instance on
-void gfx_draw_instanced(u_int32_t vertex_count, u_int32_t instance_count,
-                        u_int32_t first_instance);
+void gfx_draw_instanced(uint32_t vertex_count, uint32_t instance_count,
+                        uint32_t first_instance);
 
 // Geometry2D
 
@@ -145,8 +145,8 @@ typedef struct {
 // Vertex layout of GFX_Vertex2D (locations 0 position, 1 uv) for pipelines
 const GFX_VertexLayout *gfx_geometry2d_layout(void);
 
-GFX_Geometry2D gfx_geometry2d_create(u_int32_t vertices_count, GFX_Vertex2D *vertices,
-                             u_int32_t indices_count, u_int32_t *indices);
+GFX_Geometry2D gfx_geometry2d_create(uint32_t vertices_count, GFX_Vertex2D *vertices,
+                             uint32_t indices_count, uint32_t *indices);
 void gfx_geometry2d_destroy(const GFX_Geometry2D *geometry);
 void gfx_geometry2d_draw(const GFX_Geometry2D *geometry);
 
@@ -176,7 +176,7 @@ typedef struct {
 
 // Pixels are RGBA8, rows from top to bottom
 GFX_Texture2D gfx_texture2d_create(int width, int height,
-                                   const u_int8_t *pixels,
+                                   const uint8_t *pixels,
                                    enum GFX_TextureFilter filter,
                                    enum GFX_Wrap wrap);
 // On failure the texture is zeroed, materials then use white
@@ -199,21 +199,21 @@ void gfx_texture2d_destroy(const GFX_Texture2D *texture);
 
 // typedef'd as GFX_MaterialLayout in the pipeline section
 struct GFX_MaterialLayout {
-  u_int32_t uniform_size;
-  u_int32_t texture_count;
+  uint32_t uniform_size;
+  uint32_t texture_count;
   WGPUBindGroupLayout layout;
   // Frame, object and this material groups
   WGPUPipelineLayout pipeline_layout;
 };
 
-GFX_MaterialLayout gfx_material_layout_create(u_int32_t uniform_size,
-                                              u_int32_t texture_count);
+GFX_MaterialLayout gfx_material_layout_create(uint32_t uniform_size,
+                                              uint32_t texture_count);
 void gfx_material_layout_destroy(const GFX_MaterialLayout *layout);
 
 // Material, the values for a material layout
 
 typedef struct {
-  u_int32_t uniform_size;
+  uint32_t uniform_size;
   WGPUBuffer buffer;
   WGPUBindGroup group;
 } GFX_Material;
@@ -250,8 +250,8 @@ typedef struct {
 // Vertex layout of GFX_Vertex3D (locations 0 position, 1 normal, 2 uv)
 const GFX_VertexLayout *gfx_geometry3d_layout(void);
 
-GFX_Geometry3D gfx_geometry3d_create(u_int32_t vertices_count, GFX_Vertex3D *vertices,
-                             u_int32_t indices_count, u_int32_t *indices);
+GFX_Geometry3D gfx_geometry3d_create(uint32_t vertices_count, GFX_Vertex3D *vertices,
+                             uint32_t indices_count, uint32_t *indices);
 void gfx_geometry3d_destroy(const GFX_Geometry3D *geometry);
 void gfx_geometry3d_draw(const GFX_Geometry3D *geometry);
 

@@ -129,7 +129,7 @@ void _gfx_sys_sprite_draw(ecs_iter_t *it) {
     }
   }
 
-  u_int32_t count = arrlen(sr->draws);
+  uint32_t count = arrlen(sr->draws);
   if (count == 0) {
     return;
   }
@@ -138,7 +138,7 @@ void _gfx_sys_sprite_draw(ecs_iter_t *it) {
 
   // Upload the instances in draw order
   arrsetlen(sr->instances, count);
-  for (u_int32_t i = 0; i < count; i++) {
+  for (uint32_t i = 0; i < count; i++) {
     sr->instances[i] = sr->draws[i].instance;
   }
   if (count > sr->instance_capacity) {
@@ -155,9 +155,9 @@ void _gfx_sys_sprite_draw(ecs_iter_t *it) {
   // One draw per run of sprites sharing a texture, instances keep the order
   gfx_pipeline_bind(&sr->pipeline);
   gfx_vertex_buffer_bind(&sr->instance_buffer);
-  u_int32_t start = 0;
+  uint32_t start = 0;
   while (start < count) {
-    u_int32_t end = start + 1;
+    uint32_t end = start + 1;
     while (end < count &&
            sr->draws[end].texture->view == sr->draws[start].texture->view) {
       end++;

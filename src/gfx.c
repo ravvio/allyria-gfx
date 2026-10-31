@@ -47,10 +47,25 @@ GFX_Error gfx_init(const GFX_ProjectSettings *settings, ecs_world_t *world) {
   return GFX_ERR_OK;
 }
 
-// Run the main loop until the window should close
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+
+static void _gfx_run_frame(void *world) {
+  if (!ecs_progress(world, 0)) {
+    emscripten_cancel_main_loop();
+  }
+}
+#endif
+
+// Run the main loop until the window should close. In the browser the frames
+// are driven by requestAnimationFrame and this call does not return.
 void gfx_run(ecs_world_t *world) {
+#ifdef __EMSCRIPTEN__
+  emscripten_set_main_loop_arg(_gfx_run_frame, world, 0, true);
+#else
   while (ecs_progress(world, 0)) {
   }
+#endif
 }
 
 void gfx_terminate(ecs_world_t *world) {

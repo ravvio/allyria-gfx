@@ -3,6 +3,7 @@
 
 // Include libraries
 #include <math.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 // WebGPU clip space depth is [0, 1]
@@ -15,14 +16,14 @@
 
 // Definitions
 
-typedef u_int8_t GFX_Boolean;
+typedef uint8_t GFX_Boolean;
 
 #define GFX_TRUE 1
 #define GFX_FALSE 0
 
 // Error
 
-typedef u_int8_t GFX_Error;
+typedef uint8_t GFX_Error;
 #define GFX_ERR_OK 0
 #define GFX_ERR_FAILED 1 // Generic error
 #define GFX_ERR_GLFW 2   // External libraries failure

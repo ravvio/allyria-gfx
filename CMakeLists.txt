@@ -20,6 +20,33 @@ string(REGEX REPLACE "amd64" "x86_64" KERNEL_ARCH "${ARCH}")
 # Set directory locations (allowing us to move directories easily)
 set(BUILD_DIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${ARCH})
 
+# Dawn release used for WebGPU, natively (prebuilt) and in the browser
+# (emdawnwebgpu port), from github.com/google/dawn/releases
+set(DAWN_TAG v20261029.184636)
+set(DAWN_REV 2e9d054d9b5b9df3407057192e7936e2fb41c816)
+
+# glfw3webgpu (below) links the 'glfw' and 'webgpu' targets
+add_library(webgpu INTERFACE)
+
+if(EMSCRIPTEN)
+  # Browser: GLFW 3.4 API from Emscripten's contrib.glfw3 port (the built-in
+  # -sUSE_GLFW=3 is GLFW 3.2, no glfwGetError), WebGPU from Dawn's emdawnwebgpu
+  add_library(glfw INTERFACE)
+  target_compile_options(glfw INTERFACE --use-port=contrib.glfw3)
+  target_link_options(glfw INTERFACE --use-port=contrib.glfw3)
+
+  set(EMDAWNWEBGPU_PORT ${CMAKE_BINARY_DIR}/emdawnwebgpu-${DAWN_TAG}.remoteport.py)
+  file(DOWNLOAD
+      "https://github.com/google/dawn/releases/download/${DAWN_TAG}/emdawnwebgpu-${DAWN_TAG}.remoteport.py"
+      ${EMDAWNWEBGPU_PORT}
+      EXPECTED_HASH SHA256=6ae253a111e30c556f3ff95be9c26617a24e7cfc708752a79b8a33ef09e1ad1b
+  )
+  target_compile_options(webgpu INTERFACE --use-port=${EMDAWNWEBGPU_PORT})
+  # ASYNCIFY lets init wait on the adapter/device requests (wgpuInstanceWaitAny)
+  target_link_options(webgpu INTERFACE --use-port=${EMDAWNWEBGPU_PORT} -sASYNCIFY)
+  target_compile_definitions(webgpu INTERFACE WEBGPU_BACKEND_EMDAWNWEBGPU)
+else()
+
 # Add GLFW
 FetchContent_Declare(
     glfw
@@ -30,10 +57,8 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glfw)
 
-# Add Dawn (WebGPU), prebuilt nightly from github.com/google/dawn/releases
+# Add Dawn (WebGPU) prebuilt
 # ponytail: Release archives only, Windows Debug builds need Dawn's Debug archive (MSVC runtime)
-set(DAWN_TAG v20261029.184636)
-set(DAWN_REV 2e9d054d9b5b9df3407057192e7936e2fb41c816)
 if(APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
   set(DAWN_PLATFORM macos-15-intel)
   set(DAWN_SHA256 a24900577a4ba760717af0f745d80799a0d2fabaca488813e6ba79cf42bce4a5)
@@ -56,10 +81,11 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(dawn)
 find_package(Threads REQUIRED)
 find_package(Dawn CONFIG REQUIRED PATHS ${dawn_SOURCE_DIR} NO_DEFAULT_PATH)
-
-# Add glfw3webgpu (WebGPU surface from a GLFW window), it links a 'webgpu' target
-add_library(webgpu INTERFACE)
 target_link_libraries(webgpu INTERFACE dawn::webgpu_dawn)
+
+endif()
+
+# Add glfw3webgpu (WebGPU surface from a GLFW window)
 FetchContent_Declare(
     glfw3webgpu
     GIT_REPOSITORY "https://github.com/eliemichel/glfw3webgpu"
@@ -81,6 +107,11 @@ FetchContent_MakeAvailable(cglm)
 
 # Add flecs (vendored, so the library matches include/flecs/flecs.h)
 add_library(flecs ./include/flecs/flecs.c)
+if(EMSCRIPTEN)
+  # flecs overflows Emscripten's default 64KB stack in ecs_init, its build
+  # docs ask for 1MB (see SOURCES.md)
+  target_link_options(flecs INTERFACE -sSTACK_SIZE=1mb)
+endif()
 
 # Create the GFX library
 set(GFXSOURCES
@@ -108,7 +139,7 @@ set(GFXSOURCES
 )
 add_library(gfx ${GFXSOURCES})
 # webgpu.h is part of the public graphics API
-target_link_libraries(gfx PUBLIC dawn::webgpu_dawn PRIVATE glfw glfw3webgpu cglm_headers flecs)
+target_link_libraries(gfx PUBLIC webgpu PRIVATE glfw glfw3webgpu cglm_headers flecs)
 
 # Copy full directories
 macro(copy_resource_dirs dirs)
@@ -151,20 +182,35 @@ function(add_exe EXE_NAME)
     )
 
     # And libraries
-    target_link_libraries(${EXE_NAME} PRIVATE cglm_headers flecs gfx)
+    target_link_libraries(${EXE_NAME} PRIVATE cglm_headers flecs glfw gfx)
+
+    # Browser: an .html page with the assets packaged at /assets
+    if(EMSCRIPTEN)
+        # emdawnwebgpu is C++, it links with em++
+        set_target_properties(${EXE_NAME} PROPERTIES SUFFIX ".html" LINKER_LANGUAGE CXX)
+        target_link_options(${EXE_NAME} PRIVATE
+            --preload-file ${CMAKE_SOURCE_DIR}/assets@/assets
+            -sALLOW_MEMORY_GROWTH=1
+        )
+    endif()
 endfunction()
 
-add_exe(graphics_basic)
-add_exe(graphics_triangle)
-add_exe(graphics_geometry2d)
-add_exe(graphics_geometry3d)
-add_exe(graphics_material_std_unlit)
+# The graphics_* examples run their own blocking loop, native only
+if(NOT EMSCRIPTEN)
+    add_exe(graphics_basic)
+    add_exe(graphics_triangle)
+    add_exe(graphics_geometry2d)
+    add_exe(graphics_geometry3d)
+    add_exe(graphics_material_std_unlit)
+endif()
 
 add_exe(engine_basic)
 add_exe(engine_sprites)
 
 # Tests, run with: ctest --test-dir build
-enable_testing()
-add_executable(test_texture_mips tests/test_texture_mips.c)
-target_link_libraries(test_texture_mips PRIVATE glfw gfx)
-add_test(NAME texture_mips COMMAND test_texture_mips)
+if(NOT EMSCRIPTEN)
+    enable_testing()
+    add_executable(test_texture_mips tests/test_texture_mips.c)
+    target_link_libraries(test_texture_mips PRIVATE glfw gfx)
+    add_test(NAME texture_mips COMMAND test_texture_mips)
+endif()

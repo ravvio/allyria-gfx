@@ -22,7 +22,7 @@ GFX_Sprite gfx_sprite_create(const GFX_Texture2D *texture, int offset_x,
 
 // Draw order, lower layers first. Inside a layer sprites are grouped by
 // texture.
-typedef u_int8_t GFX_SpriteLayer;
+typedef uint8_t GFX_SpriteLayer;
 extern ECS_COMPONENT_DECLARE(GFX_SpriteLayer);
 
 // Per-instance vertex data of sprite.wgsl (80 bytes)
@@ -41,7 +41,7 @@ typedef struct {
 
   // Instance vertex buffer, grows when needed
   GFX_VertexBuffer instance_buffer;
-  u_int32_t instance_capacity;
+  uint32_t instance_capacity;
 
   // Per frame scratch (stb_ds arrays)
   struct _GFX_SpriteDraw *draws;

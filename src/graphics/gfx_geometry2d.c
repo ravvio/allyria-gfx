@@ -26,8 +26,8 @@ GFX_Vertex2D gfx_vertex2d_create(float position_x, float position_y, float uv_x,
 }
 
 // Upload the vertices and indices, the arrays can be freed afterwards
-GFX_Geometry2D gfx_geometry2d_create(u_int32_t vertices_count, GFX_Vertex2D *vertices,
-                             u_int32_t indices_count, u_int32_t *indices) {
+GFX_Geometry2D gfx_geometry2d_create(uint32_t vertices_count, GFX_Vertex2D *vertices,
+                             uint32_t indices_count, uint32_t *indices) {
   GFX_Geometry2D geometry = {
       ._vbo = gfx_vertex_buffer_create(vertices_count * sizeof(GFX_Vertex2D),
                                        vertices),
@@ -55,7 +55,7 @@ GFX_Geometry2D gfx_geometry2d_shape_quad_create(float_t width, float_t height) {
       gfx_vertex2d_create(+width / 2.0, -height / 2.0, 1.0, 0.0),
       gfx_vertex2d_create(+width / 2.0, +height / 2.0, 1.0, 1.0),
   };
-  u_int32_t indices[6] = {0, 1, 2, 2, 3, 1};
+  uint32_t indices[6] = {0, 1, 2, 2, 3, 1};
 
   return gfx_geometry2d_create(4, vertices, 6, indices);
 }

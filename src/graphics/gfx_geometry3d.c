@@ -34,8 +34,8 @@ GFX_Vertex3D gfx_vertex3d_create(float position_x, float position_y,
 }
 
 // Upload the vertices and indices, the arrays can be freed afterwards
-GFX_Geometry3D gfx_geometry3d_create(u_int32_t vertices_count, GFX_Vertex3D *vertices,
-                             u_int32_t indices_count, u_int32_t *indices) {
+GFX_Geometry3D gfx_geometry3d_create(uint32_t vertices_count, GFX_Vertex3D *vertices,
+                             uint32_t indices_count, uint32_t *indices) {
   GFX_Geometry3D geometry = {
       ._vbo = gfx_vertex_buffer_create(vertices_count * sizeof(GFX_Vertex3D),
                                        vertices),
@@ -68,7 +68,7 @@ GFX_Geometry3D gfx_geometry3d_shape_quad_create(float_t width, float_t height) {
       gfx_vertex3d_create(+width / 2.0, +height / 2.0, 0.0, 0.0, 0.0, +1.0, 1.0,
                           1.0),
   };
-  u_int32_t indices[6] = {0, 1, 2, 2, 3, 0};
+  uint32_t indices[6] = {0, 1, 2, 2, 3, 0};
 
   return gfx_geometry3d_create(4, vertices, 6, indices);
 }
@@ -132,7 +132,7 @@ GFX_Geometry3D gfx_geometry3d_shape_cuboid_create(float_t width, float_t height,
                           0.0, 1.0, 1.0),
   };
 
-  u_int32_t indices[36] = {// front
+  uint32_t indices[36] = {// front
                            0, 1, 2, 2, 3, 0,
                            // right
                            4, 5, 6, 6, 7, 4,

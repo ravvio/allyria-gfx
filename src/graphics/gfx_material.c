@@ -9,7 +9,7 @@
 static GFX_Texture2D _white;
 
 // WGSL uniform structs are sized in multiples of 16 bytes
-static u_int32_t _gfx_uniform_buffer_size(u_int32_t uniform_size) {
+static uint32_t _gfx_uniform_buffer_size(uint32_t uniform_size) {
   return (uniform_size + 15) & ~15u;
 }
 
@@ -17,8 +17,8 @@ static u_int32_t _gfx_uniform_buffer_size(u_int32_t uniform_size) {
 // Material Layout
 // ============================================================================
 
-GFX_MaterialLayout gfx_material_layout_create(u_int32_t uniform_size,
-                                              u_int32_t texture_count) {
+GFX_MaterialLayout gfx_material_layout_create(uint32_t uniform_size,
+                                              uint32_t texture_count) {
   assert(uniform_size % 4 == 0);
   assert(texture_count <= GFX_MATERIAL_MAX_TEXTURES);
 
@@ -36,7 +36,7 @@ GFX_MaterialLayout gfx_material_layout_create(u_int32_t uniform_size,
     count++;
   }
 
-  for (u_int32_t i = 0; i < texture_count; i++) {
+  for (uint32_t i = 0; i < texture_count; i++) {
     entries[count] = WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT;
     entries[count].binding = 1 + 2 * i;
     entries[count].visibility = WGPUShaderStage_Fragment;
@@ -96,7 +96,7 @@ GFX_Material gfx_material_create(const GFX_MaterialLayout *layout,
     count++;
   }
 
-  for (u_int32_t i = 0; i < layout->texture_count; i++) {
+  for (uint32_t i = 0; i < layout->texture_count; i++) {
     const GFX_Texture2D *texture = textures ? textures[i] : NULL;
     if (texture == NULL || texture->view == NULL) {
       texture = &_white;
@@ -147,7 +147,7 @@ void gfx_material_bind(const GFX_Material *material) {
 // ============================================================================
 
 void gfx_materials_init(void) {
-  u_int8_t white[4] = {255, 255, 255, 255};
+  uint8_t white[4] = {255, 255, 255, 255};
   _white = gfx_texture2d_create(1, 1, white, GFX_TEXTURE_FILTER_NEAREST,
                                 GFX_WRAP_REPEAT);
 }

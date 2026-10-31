@@ -24,9 +24,9 @@ static struct {
   WGPUBindGroup object_group;
 
   // CPU copy of the object arena, uploaded at frame end
-  u_int8_t *object_data;
+  uint8_t *object_data;
   // Slots used this frame, can go past the capacity to report overflows once
-  u_int32_t object_count;
+  uint32_t object_count;
 } _uniforms;
 
 static WGPUBindGroupLayout _gfx_uniform_layout(WGPUBool dynamic) {
@@ -43,7 +43,7 @@ static WGPUBindGroupLayout _gfx_uniform_layout(WGPUBool dynamic) {
   return wgpuDeviceCreateBindGroupLayout(_gfx.device, &desc);
 }
 
-static WGPUBuffer _gfx_uniform_buffer(u_int64_t size) {
+static WGPUBuffer _gfx_uniform_buffer(uint64_t size) {
   WGPUBufferDescriptor desc = WGPU_BUFFER_DESCRIPTOR_INIT;
   desc.usage = WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst;
   desc.size = size;
@@ -82,7 +82,7 @@ GFX_Error gfx_uniforms_init(void) {
   _uniforms.frame_group =
       _gfx_uniform_group(_uniforms.frame_layout, _uniforms.frame_buffer);
   _uniforms.object_buffer = _gfx_uniform_buffer(
-      (u_int64_t)GFX_UNIFORM_SLOT_COUNT * GFX_UNIFORM_SLOT_SIZE);
+      (uint64_t)GFX_UNIFORM_SLOT_COUNT * GFX_UNIFORM_SLOT_SIZE);
   _uniforms.object_group =
       _gfx_uniform_group(_uniforms.object_layout, _uniforms.object_buffer);
 
@@ -126,7 +126,7 @@ void gfx_uniforms_terminate(void) {
 void gfx_uniforms_frame_begin(void) {
   _uniforms.object_count = 0;
 
-  u_int32_t offset = 0;
+  uint32_t offset = 0;
   wgpuRenderPassEncoderSetBindGroup(_gfx.pass, 0, _uniforms.frame_group, 0,
                                     NULL);
   wgpuRenderPassEncoderSetBindGroup(_gfx.pass, 1, _uniforms.object_group, 1,
@@ -135,7 +135,7 @@ void gfx_uniforms_frame_begin(void) {
 
 // Upload the model matrices of this frame, before the submit
 void gfx_uniforms_frame_end(void) {
-  u_int32_t count = _uniforms.object_count < GFX_UNIFORM_SLOT_COUNT
+  uint32_t count = _uniforms.object_count < GFX_UNIFORM_SLOT_COUNT
                         ? _uniforms.object_count
                         : GFX_UNIFORM_SLOT_COUNT;
   if (count > 0) {
@@ -166,7 +166,7 @@ void gfx_draw_set_model(mat4 model) {
     return;
   }
 
-  u_int32_t offset = _uniforms.object_count * GFX_UNIFORM_SLOT_SIZE;
+  uint32_t offset = _uniforms.object_count * GFX_UNIFORM_SLOT_SIZE;
   memcpy(_uniforms.object_data + offset, model, sizeof(mat4));
   _uniforms.object_count += 1;
 

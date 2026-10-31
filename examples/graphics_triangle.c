@@ -19,7 +19,7 @@ int main(void) {
       0.5,  -0.5, // 1
       0.0,  0.6,  // 2
   };
-  u_int32_t indices[3] = {
+  uint32_t indices[3] = {
       0,
       1,
       2,

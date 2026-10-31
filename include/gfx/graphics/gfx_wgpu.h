@@ -21,7 +21,7 @@ typedef struct {
   WGPUPipelineLayout pipeline_layout;
   WGPUColor clear_color;
   // Enabled GFX_Graphics_Feature bits, baked into pipelines
-  u_int32_t features;
+  uint32_t features;
 
   // Current frame, set between gfx_frame_begin and gfx_frame_end
   WGPUTexture texture;
@@ -46,9 +46,9 @@ WGPUPipelineLayout gfx_uniforms_pipeline_layout(WGPUBindGroupLayout material);
 
 // Texture mipmaps (gfx_texture.c), exposed for tests/test_texture_mips.c
 
-u_int32_t gfx_texture_mip_count(int width, int height);
-void gfx_texture_downsample(const u_int8_t *src, int src_w, int src_h,
-                            u_int8_t *dst, int dst_w, int dst_h);
+uint32_t gfx_texture_mip_count(int width, int height);
+void gfx_texture_downsample(const uint8_t *src, int src_w, int src_h,
+                            uint8_t *dst, int dst_w, int dst_h);
 
 // Materials (gfx_material.c)
 

@@ -4,7 +4,7 @@
 #include <assert.h>
 
 // Create a GPU buffer and upload data to it if not NULL
-static WGPUBuffer _gfx_buffer_create(WGPUBufferUsage usage, u_int32_t size,
+static WGPUBuffer _gfx_buffer_create(WGPUBufferUsage usage, uint32_t size,
                                      const void *data) {
   // Queue writes need 4 byte aligned sizes
   assert(size % 4 == 0);
@@ -24,7 +24,7 @@ static WGPUBuffer _gfx_buffer_create(WGPUBufferUsage usage, u_int32_t size,
 // ============================================================================
 
 // Create a vertex buffer
-GFX_VertexBuffer gfx_vertex_buffer_create(u_int32_t size, const void *data) {
+GFX_VertexBuffer gfx_vertex_buffer_create(uint32_t size, const void *data) {
   GFX_VertexBuffer vb = {
       .buffer = _gfx_buffer_create(WGPUBufferUsage_Vertex, size, data),
   };
@@ -38,7 +38,7 @@ void gfx_vertex_buffer_destroy(const GFX_VertexBuffer *vb) {
 
 // Overwrite the start of a vertex buffer
 void gfx_vertex_buffer_write(const GFX_VertexBuffer *vb, const void *data,
-                             u_int32_t size) {
+                             uint32_t size) {
   assert(size % 4 == 0);
   wgpuQueueWriteBuffer(_gfx.queue, vb->buffer, 0, data, size);
 }
@@ -56,11 +56,11 @@ void gfx_vertex_buffer_bind(const GFX_VertexBuffer *vb) {
 // ============================================================================
 
 // Create an index buffer
-GFX_IndexBuffer gfx_index_buffer_create(u_int32_t count,
-                                        const u_int32_t *data) {
+GFX_IndexBuffer gfx_index_buffer_create(uint32_t count,
+                                        const uint32_t *data) {
   GFX_IndexBuffer ib = {
       .buffer = _gfx_buffer_create(WGPUBufferUsage_Index,
-                                   count * sizeof(u_int32_t), data),
+                                   count * sizeof(uint32_t), data),
       .count = count,
   };
   return ib;
@@ -81,7 +81,7 @@ void gfx_index_buffer_bind(const GFX_IndexBuffer *ib) {
 }
 
 // Get count of indices inside buffer
-u_int32_t gfx_index_buffer_get_count(const GFX_IndexBuffer *ib) {
+uint32_t gfx_index_buffer_get_count(const GFX_IndexBuffer *ib) {
   return ib->count;
 }
 
@@ -90,7 +90,7 @@ u_int32_t gfx_index_buffer_get_count(const GFX_IndexBuffer *ib) {
 // ============================================================================
 
 // Add an attribute of `count` f32 to the layout
-void gfx_vertex_layout_push_f32(GFX_VertexLayout *layout, u_int32_t count) {
+void gfx_vertex_layout_push_f32(GFX_VertexLayout *layout, uint32_t count) {
   static const WGPUVertexFormat formats[] = {
       WGPUVertexFormat_Float32,
       WGPUVertexFormat_Float32x2,
@@ -114,7 +114,7 @@ void gfx_vertex_layout_push_f32(GFX_VertexLayout *layout, u_int32_t count) {
 // ============================================================================
 
 // Draw `count` indices of the bound index buffer
-void gfx_draw_indexed(u_int32_t count) {
+void gfx_draw_indexed(uint32_t count) {
   if (_gfx.pass) {
     wgpuRenderPassEncoderDrawIndexed(_gfx.pass, count, 1, 0, 0, 0);
   }
@@ -122,8 +122,8 @@ void gfx_draw_indexed(u_int32_t count) {
 
 // Draw `instance_count` instances of `vertex_count` vertices, without index
 // buffer
-void gfx_draw_instanced(u_int32_t vertex_count, u_int32_t instance_count,
-                        u_int32_t first_instance) {
+void gfx_draw_instanced(uint32_t vertex_count, uint32_t instance_count,
+                        uint32_t first_instance) {
   if (_gfx.pass) {
     wgpuRenderPassEncoderDraw(_gfx.pass, vertex_count, instance_count, 0,
                               first_instance);
