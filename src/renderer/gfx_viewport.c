@@ -2,10 +2,7 @@
 
 ECS_COMPONENT_DECLARE(GFX_Viewport);
 
-void _gfx_viewport_write_camera(
-    const ecs_world_t *world
-) {
-}
+void _gfx_viewport_write_camera(const ecs_world_t *world) {}
 
 void GfxViewportImport(ecs_world_t *world) {
   ECS_MODULE(world, GfxViewport);

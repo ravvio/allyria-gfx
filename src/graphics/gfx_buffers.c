@@ -56,8 +56,7 @@ void gfx_vertex_buffer_bind(const GFX_VertexBuffer *vb) {
 // ============================================================================
 
 // Create an index buffer
-GFX_IndexBuffer gfx_index_buffer_create(uint32_t count,
-                                        const uint32_t *data) {
+GFX_IndexBuffer gfx_index_buffer_create(uint32_t count, const uint32_t *data) {
   GFX_IndexBuffer ib = {
       .buffer = _gfx_buffer_create(WGPUBufferUsage_Index,
                                    count * sizeof(uint32_t), data),
@@ -74,9 +73,8 @@ void gfx_index_buffer_destroy(const GFX_IndexBuffer *ib) {
 // Bind a index buffer to the current frame
 void gfx_index_buffer_bind(const GFX_IndexBuffer *ib) {
   if (_gfx.pass) {
-    wgpuRenderPassEncoderSetIndexBuffer(_gfx.pass, ib->buffer,
-                                        WGPUIndexFormat_Uint32, 0,
-                                        WGPU_WHOLE_SIZE);
+    wgpuRenderPassEncoderSetIndexBuffer(
+        _gfx.pass, ib->buffer, WGPUIndexFormat_Uint32, 0, WGPU_WHOLE_SIZE);
   }
 }
 

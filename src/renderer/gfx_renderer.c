@@ -22,11 +22,13 @@ void _gfx_sys_pre_render(ecs_iter_t *it) {
       ecs_get_mut(it->world, engine->surface_id, GFX_Surface);
   gfx_surface_sync(surface);
 
-  GFX_Uniforms *uniforms = ecs_get_mut(it->world, engine->uniforms_id, GFX_Uniforms);
+  GFX_Uniforms *uniforms =
+      ecs_get_mut(it->world, engine->uniforms_id, GFX_Uniforms);
 
   // Sync camera values
   if (engine->main_camera_id > 0) {
-    GFX_Camera *cam = ecs_get_mut(it->world, engine->main_camera_id, GFX_Camera);
+    GFX_Camera *cam =
+        ecs_get_mut(it->world, engine->main_camera_id, GFX_Camera);
     glm_mat4_mul(cam->projection, cam->view, uniforms->t_camera_mvp);
     glm_mat4_mul(uniforms->t_camera_mvp, cam->model, uniforms->t_camera_mvp);
   }

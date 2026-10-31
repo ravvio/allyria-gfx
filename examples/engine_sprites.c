@@ -5,7 +5,7 @@
 
 int main(void) {
   enum GFX_Graphics_Feature graphics_features[] = {
-    GFX_GRAPHICS_FEATURE_ALPHA_BLEND,
+      GFX_GRAPHICS_FEATURE_ALPHA_BLEND,
   };
   GFX_ProjectSettings settings = {
       .window_width = 800,

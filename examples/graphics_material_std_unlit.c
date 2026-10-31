@@ -19,9 +19,9 @@ int main(void) {
   gfx_graphics_enable(GFX_GRAPHICS_FEATURE_DEPTH_TESTING);
   gfx_graphics_enable(GFX_GRAPHICS_FEATURE_CULL_BACK);
 
-  GFX_Texture2D tex = gfx_texture2d_load("./assets/textures/uv_checker_bw.png",
-                                         GFX_TEXTURE_FILTER_LINEAR,
-                                         GFX_WRAP_REPEAT);
+  GFX_Texture2D tex =
+      gfx_texture2d_load("./assets/textures/uv_checker_bw.png",
+                         GFX_TEXTURE_FILTER_LINEAR, GFX_WRAP_REPEAT);
 
   GFX_Geometry3D geometry = gfx_geometry3d_shape_cuboid_create(1.0, 1.0, 1.0);
 
@@ -42,7 +42,8 @@ int main(void) {
   gfx_frame_set_view_projection(view_projection);
 
   // Unlit material: albedo color * albedo texture
-  GFX_MaterialLayout unlit = gfx_material_layout_create(sizeof(UnlitUniform), 1);
+  GFX_MaterialLayout unlit =
+      gfx_material_layout_create(sizeof(UnlitUniform), 1);
   UnlitUniform uniform = {.albedo = {0.5, 0.5, 0.0, 1.0}};
   const GFX_Texture2D *textures[] = {&tex};
   GFX_Material material = gfx_material_create(&unlit, &uniform, textures);

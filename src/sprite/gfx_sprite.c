@@ -54,8 +54,7 @@ static int _gfx_sprite_draw_compare(const void *a, const void *b) {
     return da->layer < db->layer ? -1 : 1;
   }
   if (da->texture->view != db->texture->view) {
-    return (uintptr_t)da->texture->view < (uintptr_t)db->texture->view ? -1
-                                                                        : 1;
+    return (uintptr_t)da->texture->view < (uintptr_t)db->texture->view ? -1 : 1;
   }
   return 0;
 }

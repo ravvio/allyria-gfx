@@ -14,7 +14,8 @@ void _gfx_sys_should_stop(ecs_iter_t *it) {
   assert(surface != NULL);
 
   if (gfx_window_should_close(surface->window)) {
-      fprintf(stderr, "[i] system: Engine window should close, terminating engine\n");
+    fprintf(stderr,
+            "[i] system: Engine window should close, terminating engine\n");
     ecs_quit(it->world);
   }
 }

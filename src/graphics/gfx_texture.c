@@ -33,9 +33,8 @@ void gfx_texture_downsample(const uint8_t *src, int src_w, int src_h,
   }
 }
 
-static void _gfx_texture_write(WGPUTexture texture, uint32_t level,
-                               int width, int height,
-                               const uint8_t *pixels) {
+static void _gfx_texture_write(WGPUTexture texture, uint32_t level, int width,
+                               int height, const uint8_t *pixels) {
   WGPUTexelCopyTextureInfo destination = WGPU_TEXEL_COPY_TEXTURE_INFO_INIT;
   destination.texture = texture;
   destination.mipLevel = level;
@@ -60,19 +59,18 @@ static WGPUAddressMode _gfx_address_mode(enum GFX_Wrap wrap) {
 
 // Create a texture from RGBA8 pixels. Linear textures get a full mip chain
 // generated on the CPU, nearest ones (pixel art, atlases) a single level.
-GFX_Texture2D gfx_texture2d_create(int width, int height,
-                                   const uint8_t *pixels,
+GFX_Texture2D gfx_texture2d_create(int width, int height, const uint8_t *pixels,
                                    enum GFX_TextureFilter filter,
                                    enum GFX_Wrap wrap) {
   uint32_t mip_count = filter == GFX_TEXTURE_FILTER_LINEAR
-                            ? gfx_texture_mip_count(width, height)
-                            : 1;
+                           ? gfx_texture_mip_count(width, height)
+                           : 1;
 
   // Two scratch levels, the largest generated level is the first one
   uint8_t *scratch[2] = {NULL, NULL};
   if (mip_count > 1) {
-    size_t size = (size_t)(width > 1 ? width / 2 : 1) *
-                  (height > 1 ? height / 2 : 1) * 4;
+    size_t size =
+        (size_t)(width > 1 ? width / 2 : 1) * (height > 1 ? height / 2 : 1) * 4;
     scratch[0] = malloc(size);
     scratch[1] = malloc(size);
     if (!scratch[0] || !scratch[1]) {

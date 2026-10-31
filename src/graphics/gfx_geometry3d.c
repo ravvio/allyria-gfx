@@ -34,8 +34,10 @@ GFX_Vertex3D gfx_vertex3d_create(float position_x, float position_y,
 }
 
 // Upload the vertices and indices, the arrays can be freed afterwards
-GFX_Geometry3D gfx_geometry3d_create(uint32_t vertices_count, GFX_Vertex3D *vertices,
-                             uint32_t indices_count, uint32_t *indices) {
+GFX_Geometry3D gfx_geometry3d_create(uint32_t vertices_count,
+                                     GFX_Vertex3D *vertices,
+                                     uint32_t indices_count,
+                                     uint32_t *indices) {
   GFX_Geometry3D geometry = {
       ._vbo = gfx_vertex_buffer_create(vertices_count * sizeof(GFX_Vertex3D),
                                        vertices),
@@ -74,7 +76,7 @@ GFX_Geometry3D gfx_geometry3d_shape_quad_create(float_t width, float_t height) {
 }
 
 GFX_Geometry3D gfx_geometry3d_shape_cuboid_create(float_t width, float_t height,
-                                          float_t depth) {
+                                                  float_t depth) {
   GFX_Vertex3D vertices[24] = {
       // front
       gfx_vertex3d_create(-width / 2.0, +height / 2.0, +depth / 2.0, 0.0, 0.0,
@@ -133,17 +135,17 @@ GFX_Geometry3D gfx_geometry3d_shape_cuboid_create(float_t width, float_t height,
   };
 
   uint32_t indices[36] = {// front
-                           0, 1, 2, 2, 3, 0,
-                           // right
-                           4, 5, 6, 6, 7, 4,
-                           // back
-                           8, 9, 10, 10, 11, 8,
-                           // left
-                           12, 13, 14, 14, 15, 12,
-                           // top
-                           16, 17, 18, 18, 19, 16,
-                           // bottom
-                           20, 21, 22, 22, 23, 20};
+                          0, 1, 2, 2, 3, 0,
+                          // right
+                          4, 5, 6, 6, 7, 4,
+                          // back
+                          8, 9, 10, 10, 11, 8,
+                          // left
+                          12, 13, 14, 14, 15, 12,
+                          // top
+                          16, 17, 18, 18, 19, 16,
+                          // bottom
+                          20, 21, 22, 22, 23, 20};
 
   return gfx_geometry3d_create(24, vertices, 36, indices);
 }

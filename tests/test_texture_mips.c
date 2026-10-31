@@ -16,16 +16,16 @@ int main(void) {
 
   // 2x2 -> 1x1 averages the 4 pixels, rounded
   uint8_t square[2 * 2 * 4] = {
-      0, 0, 0, 0,  255, 255, 255, 255, //
-      0, 0, 0, 0,  255, 255, 255, 255, //
+      0, 0, 0, 0, 255, 255, 255, 255, //
+      0, 0, 0, 0, 255, 255, 255, 255, //
   };
   gfx_texture_downsample(square, 2, 2, dst, 1, 1);
   assert(dst[0] == 128 && dst[3] == 128);
 
   // Odd width drops the last column: 3x2 -> 1x1 uses columns 0 and 1
   uint8_t odd[3 * 2 * 4] = {
-      10, 0, 0, 0,  30, 0, 0, 0,  200, 0, 0, 0, //
-      10, 0, 0, 0,  30, 0, 0, 0,  200, 0, 0, 0, //
+      10, 0, 0, 0, 30, 0, 0, 0, 200, 0, 0, 0, //
+      10, 0, 0, 0, 30, 0, 0, 0, 200, 0, 0, 0, //
   };
   gfx_texture_downsample(odd, 3, 2, dst, 1, 1);
   assert(dst[0] == 20);

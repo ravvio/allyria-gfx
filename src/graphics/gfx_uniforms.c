@@ -136,8 +136,8 @@ void gfx_uniforms_frame_begin(void) {
 // Upload the model matrices of this frame, before the submit
 void gfx_uniforms_frame_end(void) {
   uint32_t count = _uniforms.object_count < GFX_UNIFORM_SLOT_COUNT
-                        ? _uniforms.object_count
-                        : GFX_UNIFORM_SLOT_COUNT;
+                       ? _uniforms.object_count
+                       : GFX_UNIFORM_SLOT_COUNT;
   if (count > 0) {
     wgpuQueueWriteBuffer(_gfx.queue, _uniforms.object_buffer, 0,
                          _uniforms.object_data,

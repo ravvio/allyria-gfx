@@ -12,7 +12,7 @@ int main(void) {
       .window_name = "Engine Basic Test",
       .graphics_features = graphics_features,
       .graphics_features_count = 2,
-      .clear_color = { 0.2, 0.3, 0.4, 1.0 },
+      .clear_color = {0.2, 0.3, 0.4, 1.0},
   };
   ecs_world_t *world = ecs_init();
 

@@ -28,7 +28,7 @@ void gfx_graphics_enable(enum GFX_Graphics_Feature);
 typedef void GFX_Window;
 
 GFX_Window *gfx_window_init(int w, int h, const char *window_name);
-void gfx_window_destroy(GFX_Window* window);
+void gfx_window_destroy(GFX_Window *window);
 
 void gfx_window_size(GFX_Window *window, int *w, int *h);
 void gfx_window_size_set(GFX_Window *window, int w, int h);
@@ -145,8 +145,9 @@ typedef struct {
 // Vertex layout of GFX_Vertex2D (locations 0 position, 1 uv) for pipelines
 const GFX_VertexLayout *gfx_geometry2d_layout(void);
 
-GFX_Geometry2D gfx_geometry2d_create(uint32_t vertices_count, GFX_Vertex2D *vertices,
-                             uint32_t indices_count, uint32_t *indices);
+GFX_Geometry2D gfx_geometry2d_create(uint32_t vertices_count,
+                                     GFX_Vertex2D *vertices,
+                                     uint32_t indices_count, uint32_t *indices);
 void gfx_geometry2d_destroy(const GFX_Geometry2D *geometry);
 void gfx_geometry2d_draw(const GFX_Geometry2D *geometry);
 
@@ -175,8 +176,7 @@ typedef struct {
 } GFX_Texture2D;
 
 // Pixels are RGBA8, rows from top to bottom
-GFX_Texture2D gfx_texture2d_create(int width, int height,
-                                   const uint8_t *pixels,
+GFX_Texture2D gfx_texture2d_create(int width, int height, const uint8_t *pixels,
                                    enum GFX_TextureFilter filter,
                                    enum GFX_Wrap wrap);
 // On failure the texture is zeroed, materials then use white
@@ -250,13 +250,14 @@ typedef struct {
 // Vertex layout of GFX_Vertex3D (locations 0 position, 1 normal, 2 uv)
 const GFX_VertexLayout *gfx_geometry3d_layout(void);
 
-GFX_Geometry3D gfx_geometry3d_create(uint32_t vertices_count, GFX_Vertex3D *vertices,
-                             uint32_t indices_count, uint32_t *indices);
+GFX_Geometry3D gfx_geometry3d_create(uint32_t vertices_count,
+                                     GFX_Vertex3D *vertices,
+                                     uint32_t indices_count, uint32_t *indices);
 void gfx_geometry3d_destroy(const GFX_Geometry3D *geometry);
 void gfx_geometry3d_draw(const GFX_Geometry3D *geometry);
 
 GFX_Geometry3D gfx_geometry3d_shape_quad_create(float_t width, float_t height);
 GFX_Geometry3D gfx_geometry3d_shape_cuboid_create(float_t width, float_t height,
-                                          float_t depth);
+                                                  float_t depth);
 
 #endif

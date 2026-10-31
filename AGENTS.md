@@ -65,7 +65,7 @@ cd build/Debug/<arch> && ./engine_sprites   # <arch> = arm64 / x86_64
 - Errors: return `GFX_Error` (`GFX_ERR_OK` == 0). Wrap GLFW calls in `GLFWCall(...)` (compiled out with `GFX_NDEBUG`). WebGPU errors come from the device's uncaptured-error callback.
 - Dynamic arrays and hashmaps use `stb_ds`. Math uses cglm (`mat4`, `vec3`, `glm_*`).
 - Design decisions based on outside sources (specs, articles, other engines): cite them and add them to `SOURCES.md` (references and a short note on consensus).
-- Formatting matches clang-format's default LLVM style (2-space indent, 80 cols). There's no `.clang-format` file yet.
+- Formatting: `.clang-format` (LLVM style, 2-space indent, 80 cols). Format the files you touch. Vendored code is listed in `.clang-format-ignore` (read by clang-format 18+).
 
 ## Frame / ECS flow
 

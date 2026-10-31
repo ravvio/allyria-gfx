@@ -20,7 +20,7 @@ void _gfx_sys_camera_sync_pixel(ecs_iter_t *it) {
   GFX_CameraPixel *pixel = ecs_field(it, GFX_CameraPixel, 1);
 
   for (int i = 0; i < it->count; ++i) {
-    glm_scale_uni(cam[i].view, 1.0/pixel[i].ratio);
+    glm_scale_uni(cam[i].view, 1.0 / pixel[i].ratio);
   }
 }
 
