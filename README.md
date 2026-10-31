@@ -1,9 +1,17 @@
 # GFX Engine
 
+A small C99 game engine that runs natively and in the browser.
+
 Using:
-- opengl (with glad)
-- stb_image
-- cglm
+- [flecs](https://github.com/SanderMertens/flecs) for the ECS
+- [WebGPU](https://www.w3.org/TR/webgpu/) for rendering, through
+  [Dawn](https://dawn.googlesource.com/dawn) natively and emdawnwebgpu in the
+  browser
+- [GLFW](https://www.glfw.org/) for windows and input, with
+  [glfw3webgpu](https://github.com/eliemichel/glfw3webgpu) for the WebGPU surface
+- [cglm](https://github.com/recp/cglm) for math
+- [stb_image and stb_ds](https://github.com/nothings/stb) for image loading and
+  dynamic arrays
 
 ## Build
 
@@ -74,6 +82,3 @@ python3 -m http.server 8000 --bind 127.0.0.1 -d build/web/Debug/x86
 
 Then open <http://localhost:8000/engine_sprites.html> in a browser with WebGPU
 support (recent Chrome, Edge or Safari).
-
-## Extensions
-https://gen.glad.sh/#generator=c&api=gl%3D4.6&profile=gl%3Dcore%2Cgles1%3Dcommon&extensions=GL_APPLE_element_array%2CGL_APPLE_vertex_array_object%2CGL_APPLE_vertex_array_range%2CGL_ARB_vertex_array_bgra%2CGL_ARB_vertex_array_object%2CGL_ATI_element_array%2CGL_ATI_vertex_array_object%2CGL_EXT_compiled_vertex_array%2CGL_EXT_gpu_program_parameters%2CGL_EXT_gpu_shader4%2CGL_EXT_index_array_formats%2CGL_EXT_packed_depth_stencil%2CGL_EXT_packed_float%2CGL_EXT_packed_pixels%2CGL_EXT_pixel_buffer_object%2CGL_EXT_pixel_transform%2CGL_EXT_pixel_transform_color_table%2CGL_EXT_shader_framebuffer_fetch%2CGL_EXT_shader_framebuffer_fetch_non_coherent%2CGL_EXT_shader_image_load_formatted%2CGL_EXT_shader_image_load_store%2CGL_EXT_shader_integer_mix%2CGL_EXT_shader_samples_identical%2CGL_EXT_subtexture%2CGL_EXT_texture%2CGL_EXT_texture3D%2CGL_EXT_texture_array%2CGL_EXT_texture_buffer_object%2CGL_EXT_texture_compression_latc%2CGL_EXT_texture_compression_rgtc%2CGL_EXT_texture_compression_s3tc%2CGL_EXT_texture_cube_map%2CGL_EXT_texture_env_add%2CGL_EXT_texture_env_combine%2CGL_EXT_texture_env_dot3%2CGL_EXT_texture_filter_anisotropic%2CGL_EXT_texture_filter_minmax%2CGL_EXT_texture_integer%2CGL_EXT_texture_lod_bias%2CGL_EXT_texture_mirror_clamp%2CGL_EXT_texture_object%2CGL_EXT_texture_perturb_normal%2CGL_EXT_texture_shadow_lod%2CGL_EXT_texture_shared_exponent%2CGL_EXT_texture_snorm%2CGL_EXT_texture_sRGB%2CGL_EXT_texture_sRGB_decode%2CGL_EXT_texture_sRGB_R8%2CGL_EXT_texture_sRGB_RG8%2CGL_EXT_texture_storage%2CGL_EXT_texture_swizzle%2CGL_EXT_vertex_array%2CGL_EXT_vertex_array_bgra%2CGL_IBM_vertex_array_lists%2CGL_NV_vertex_array_range%2CGL_NV_vertex_array_range2
