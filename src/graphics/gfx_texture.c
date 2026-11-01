@@ -15,9 +15,7 @@ uint32_t gfx_texture_mip_count(int width, int height) {
   return count;
 }
 
-// Halve RGBA8 pixels with a 2x2 box filter.
-// dst is max(1, w/2) x max(1, h/2), odd last rows/columns are dropped and
-// 1 pixel wide sources are clamped.
+// Halve an RGBA8 image into dst
 void gfx_texture_downsample(const uint8_t *src, int src_w, int src_h,
                             uint8_t *dst, int dst_w, int dst_h) {
   for (int y = 0; y < dst_h; y++) {
@@ -59,8 +57,7 @@ static WGPUAddressMode _gfx_address_mode(enum GFX_Wrap wrap) {
   }
 }
 
-// Create a texture from RGBA8 pixels. Linear textures get a full mip chain
-// generated on the CPU, nearest ones (pixel art, atlases) a single level.
+// Create a texture from RGBA8 pixels
 GFX_Texture2D gfx_texture2d_create(int width, int height, const uint8_t *pixels,
                                    enum GFX_TextureFilter filter,
                                    enum GFX_Wrap wrap) {
@@ -68,7 +65,7 @@ GFX_Texture2D gfx_texture2d_create(int width, int height, const uint8_t *pixels,
                            ? gfx_texture_mip_count(width, height)
                            : 1;
 
-  // Two scratch levels, the largest generated level is the first one
+  // Two buffers for the mips, each one is built from the other
   uint8_t *scratch[2] = {NULL, NULL};
   if (mip_count > 1) {
     size_t size =

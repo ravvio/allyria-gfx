@@ -66,12 +66,12 @@ GFX_IndexBuffer gfx_index_buffer_create(uint32_t count, const uint32_t *data) {
   return ib;
 }
 
-// Destroy a index buffer
+// Destroy an index buffer
 void gfx_index_buffer_destroy(const GFX_IndexBuffer *ib) {
   wgpuBufferRelease(ib->buffer);
 }
 
-// Bind a index buffer to the current frame
+// Bind an index buffer to the current frame
 void gfx_index_buffer_bind(const GFX_IndexBuffer *ib) {
   if (_gfx.pass) {
     wgpuRenderPassEncoderSetIndexBuffer(

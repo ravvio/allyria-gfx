@@ -39,18 +39,18 @@ cd build/examples && ./engine_sprites
 | `include/gfx/window.h` | Window, frame begin/end, clear color |
 | `include/gfx/render.h` | Buffers, vertex layout, shaders, pipelines, view-projection/model uniforms, draws, 2D/3D geometry |
 | `include/gfx/texture.h`, `material.h` | Textures with samplers; material layouts and materials |
-| `include/gfx/engine.h` | Settings, `gfx_init`/`gfx_terminate`/`gfx_run`, surface, render phases, `GFX_Uniforms`, `GFX_Engine` |
+| `include/gfx/engine.h` | Settings, `gfx_init`/`gfx_terminate`/`gfx_run`, surface, render phases, viewports and render batches |
 | `include/gfx/transform.h`, `camera.h`, `sprite.h` | ECS modules |
 | `src/gfx_internal.h` | Private to the library: shared WebGPU state (`_gfx`), GLFW, `GLFWCall`, internal init functions |
-| `src/graphics/gfx_window.c` | WebGPU instance/adapter/device, window + surface + depth buffer, frame begin/end |
+| `src/graphics/gfx_window.c` | WebGPU instance/adapter/device, window + surface + depth buffer, frame begin/end, views (one render pass each) |
 | `src/graphics/gfx_buffers.c` | Vertex/index buffers, vertex layout, draw calls |
 | `src/graphics/gfx_shader.c` | WGSL shader modules, render pipelines |
-| `src/graphics/gfx_uniforms.c` | Shared bind group/pipeline layouts, view-projection buffer, per-draw model arena |
+| `src/graphics/gfx_uniforms.c` | Shared bind group/pipeline layouts, per-frame matrix arena (view-projections and models) |
 | `src/graphics/gfx_texture.c` | RGBA8 textures (from pixels or `stb_image`) with their sampler, CPU mipmaps |
 | `src/graphics/gfx_material.c` | Material layouts (defined by the caller), materials, white fallback texture |
 | `src/graphics/gfx_geometry2d.c`, `gfx_geometry3d.c` | Meshes (`GFX_Vertex2D` / `GFX_Vertex3D`), quad and cuboid shapes, their vertex layouts |
-| `src/renderer/` | Render phases & frame systems, surface (window + DPI) |
-| `src/sprite/gfx_sprite.c`, `sprite.wgsl` | Instanced sprites: query, sort by (layer, texture), one instance upload, one draw per texture run. The shader is embedded with `#embed` |
+| `src/renderer/` | Render phases & frame systems, surface (window + DPI), viewport loop |
+| `src/sprite/gfx_sprite.c`, `sprite.wgsl` | Instanced sprites, drawn by a `GFX_SpriteBatch` in each viewport: query, sort by (layer, texture), one instance upload, one draw per texture run. The shader is embedded with `#embed` |
 | `src/camera/`, `src/sprite/`, `src/gfx_*.c` | flecs modules |
 | `examples/` | Example programs and their own `CMakeLists.txt`, built like a game would build |
 | `examples/assets/` | The examples' shaders (WGSL, `vs_main` / `fs_main`) and textures |
@@ -68,16 +68,17 @@ cd build/examples && ./engine_sprites
 - The backend boundary is `gfx_graphics.h` + `src/graphics/`. Modules above it (`renderer/`, `sprite/`) only use that API, never `wgpu*` calls directly.
 - Resource structs are returned by value from `*_create` / `*_load` and released with `*_destroy(const T *)`.
 - `*_bind` / `gfx_draw_*` record into the current frame's render pass. Call them between `gfx_frame_begin` and `gfx_frame_end`; they do nothing when the frame was skipped.
-- Pipelines (`gfx_pipeline_create`) read the enabled graphics features and the surface format when created: enable features and create the window first.
+- Pipelines (`gfx_pipeline_create`) read the enabled graphics features and the surface format when created: enable features and create the window first. ECS modules can be imported before the game sets `GFX_Surface`, so they create their pipelines on first draw.
 - Uniforms follow a fixed contract. Pipeline layouts are always explicit (never `'auto'`), and groups 0 and 1 are shared by every pipeline:
-  - `@group(0) @binding(0) var<uniform> view_projection: mat4x4f;` set once per frame with `gfx_frame_set_view_projection`;
-  - `@group(1) @binding(0) var<uniform> model: mat4x4f;` set per draw with `gfx_draw_set_model`. It goes into a 4096-slot per-frame arena (dynamic offsets) uploaded once in `gfx_frame_end`;
+  - `@group(0) @binding(0) var<uniform> view_projection: mat4x4f;` set per view with `gfx_frame_view_begin(rect, view_projection)`, identity until a view begins;
+  - `@group(1) @binding(0) var<uniform> model: mat4x4f;` set per draw with `gfx_draw_set_model`;
+  - both go into one 4096-slot per-frame arena (dynamic offsets), uploaded once in `gfx_frame_end`;
   - `@group(2)` is the material. Its layout is defined by the caller with `gfx_material_layout_create(uniform_size, texture_count)` and passed to `gfx_pipeline_create` (NULL = no group 2):
     - binding 0 is the uniform (only if the size is > 0);
     - texture *i* is at binding `1+2i`, its sampler at `2+2i`;
     - NULL or failed textures fall back to white;
     - the engine doesn't name material fields; the shader and the caller's uniform struct do.
-  - Never `writeBuffer` per-draw data into one shared buffer region: every draw would see the last value.
+  - Never `writeBuffer` per-draw data into one shared buffer region: every draw would see the last value. Renderers run once per viewport, so buffers they write each frame belong to the renderer entity (each `GFX_SpriteBatch` has its own instance buffer).
 - Instanced data (sprites) uses a vertex buffer with `GFX_VertexLayout.step = WGPUVertexStepMode_Instance` and `gfx_draw_instanced`.
 - Coordinates: clip depth is `[0, 1]` (`CGLM_FORCE_DEPTH_ZERO_TO_ONE` is defined in `gfx_common.h`, so cglm projections match), front faces are counter-clockwise, texture origin is top-left.
 - Logging: `fprintf(stderr, "[i] ...")` for info, `"[e] ..."` for errors. Per-frame logs only under `#ifdef GFX_VERBOSE`.
@@ -90,16 +91,23 @@ cd build/examples && ./engine_sprites
 
 `gfx_run(world)` calls `ecs_progress()` every frame (a loop natively, `requestAnimationFrame` in the browser), which runs:
 1. `EcsOnLoad`: sync `GFX_Surface` with the window, so its size is current for the whole frame (gameplay included).
-2. `EcsPreUpdate`: quit if the window should close.
+2. `EcsPreUpdate`: quit if the window should close or never opened.
 3. `EcsOnUpdate` / `EcsPostUpdate`: gameplay.
 4. Render phases (defined in `gfx_renderer.c`, chained after `EcsOnStore`):
-   `GfxPreRender` (camera systems: model from `GFX_Transform`, view from `GFX_CameraPixel`, projection from `GFX_CameraOrtho` + surface aspect + scaling mode) → `GfxStartRender` (main camera's projection × view × model into `GFX_Uniforms`, `gfx_frame_set_view_projection`, `gfx_frame_begin`: acquire surface texture, begin cleared render pass) → `GfxRenderObjects` (draw, e.g. sprites) → `GfxRenderGizmos` → `GfxRenderGUI` → `GfxEndRender` (`gfx_frame_end`: upload the model arena, submit, present) → `GfxPostRender` (poll events).
+   `GfxPreRender` (camera systems: model from `GFX_Transform`, view from `GFX_CameraPixel`, a square projection from `GFX_CameraOrtho`) → `GfxStartRender` (`gfx_frame_begin`: acquire surface texture, begin cleared render pass) → `GfxRenderObjects` (the viewport loop, below) → `GfxRenderGizmos` → `GfxRenderGUI` → `GfxEndRender` (`gfx_frame_end`: upload the matrix arena, submit, present) → `GfxPostRender` (poll events).
 
-`GFX_Engine` is a singleton holding the surface, uniforms and main camera entity ids.
+The game opens the window by setting the `GFX_Surface` singleton (title, width, height) after `gfx_init`; its `on_set` hook creates the window. The component has flecs' `Singleton` trait, so systems take it as a plain `GFX_Surface` term and only run once it exists.
+
+Viewports follow the flecs engine's `RenderView` (see `SOURCES.md`). A `GFX_Viewport` entity points at a camera and draws into a rect of the window. Its renderers are child entities with `GFX_RenderBatch` (a draw function), drawn in the order they were added (`EcsOrderedChildren`). The viewport loop, sorted by `order`:
+1. view-projection = aspect fit (from the camera's `scaling_mode` and the viewport's aspect) × square projection × view × inverse(camera transform);
+2. `gfx_frame_view_begin(rect, view_projection)`;
+3. each renderer's `draw`.
+
+Draw code goes in a render batch, not in a system: systems run once per frame, batches once per viewport.
 
 Systems that depend on each other go in different phases, not in declaration order within one phase: flecs doesn't guarantee that order.
 
-Every frame's render pass has a `Depth24Plus` depth attachment, owned by the window and recreated on resize. Every pipeline therefore declares a depth state; without `GFX_GRAPHICS_FEATURE_DEPTH_TESTING` it uses compare `Always` with writes off.
+Every frame's render pass has a `Depth24Plus` depth attachment, owned by the window and recreated on resize. Every pipeline therefore declares a depth state; without `GFX_GRAPHICS_FEATURE_DEPTH_TESTING` it uses compare `Always` with writes off. Each view after the first starts a new render pass (color loaded, depth cleared), so overlapping viewports don't share depth.
 
 WebGPU objects (instance, adapter, device, queue, current frame's encoder/pass) live in the `_gfx` struct (`gfx_wgpu.h`, defined in `gfx_window.c`). A frame can be skipped (window minimized, surface outdated): `gfx_frame_end` then does nothing, and draw code must handle a NULL render pass.
 

@@ -19,7 +19,7 @@ int main(void) {
 
   mat4 view_projection;
   glm_ortho_default(800.0f / 600.0f, view_projection);
-  gfx_frame_set_view_projection(view_projection);
+  vec4 full_window = {0.0f, 0.0f, 1.0f, 1.0f};
 
   // Three quads sharing the geometry, each draw gets its own model
   mat4 models[3];
@@ -32,6 +32,7 @@ int main(void) {
 
   while (!gfx_window_should_close(win)) {
     gfx_frame_begin(win);
+    gfx_frame_view_begin(full_window, view_projection);
 
     gfx_pipeline_bind(&pipeline);
     for (int i = 0; i < 3; i++) {

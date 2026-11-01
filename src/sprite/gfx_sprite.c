@@ -1,6 +1,5 @@
-// Instanced sprites: every frame the sprites are collected, sorted by (layer,
-// texture) and uploaded as one instance buffer, then drawn with one draw per
-// run of sprites sharing a texture.
+// Instanced sprites: sorted by layer and texture, drawn with one draw per run
+// of sprites sharing a texture
 
 #include <gfx/engine.h>
 #include <gfx/sprite.h>
@@ -13,6 +12,7 @@
 ECS_COMPONENT_DECLARE(GFX_Sprite);
 ECS_COMPONENT_DECLARE(GFX_SpriteLayer);
 ECS_COMPONENT_DECLARE(GFX_SpriteRenderer);
+ECS_COMPONENT_DECLARE(GFX_SpriteBatch);
 
 // A sprite to draw this frame, with its sort keys
 struct _GFX_SpriteDraw {
@@ -53,18 +53,6 @@ GFX_Sprite gfx_sprite_create(const GFX_Texture2D *texture, int offset_x,
 
 // *** SPRITE RENDERER ***
 
-static int _gfx_sprite_draw_compare(const void *a, const void *b) {
-  const struct _GFX_SpriteDraw *da = a;
-  const struct _GFX_SpriteDraw *db = b;
-  if (da->layer != db->layer) {
-    return da->layer < db->layer ? -1 : 1;
-  }
-  if (da->texture->view != db->texture->view) {
-    return (uintptr_t)da->texture->view < (uintptr_t)db->texture->view ? -1 : 1;
-  }
-  return 0;
-}
-
 // Material of a texture, created on first use
 static const GFX_Material *_gfx_sprite_material(GFX_SpriteRenderer *sr,
                                                 const GFX_Texture2D *texture) {
@@ -84,13 +72,10 @@ static void _gfx_sprite_renderer_destroy(GFX_SpriteRenderer *sr) {
     gfx_material_destroy(&sr->materials[i].value);
   }
   hmfree(sr->materials);
-  arrfree(sr->draws);
-  arrfree(sr->instances);
-  if (sr->instance_buffer.buffer) {
-    gfx_vertex_buffer_destroy(&sr->instance_buffer);
-  }
   if (sr->pipeline.pipeline) {
     gfx_pipeline_destroy(&sr->pipeline);
+  }
+  if (sr->shader.module) {
     gfx_material_layout_destroy(&sr->material_layout);
     gfx_shader_destroy(&sr->shader);
   }
@@ -106,15 +91,30 @@ ECS_MOVE(GFX_SpriteRenderer, dst, src, {
   ecs_os_zeromem(src);
 })
 
-// *** SYSTEMS ***
+// *** SPRITE BATCH ***
+
+static int _gfx_sprite_draw_compare(const void *a, const void *b) {
+  const struct _GFX_SpriteDraw *da = a;
+  const struct _GFX_SpriteDraw *db = b;
+  if (da->layer != db->layer) {
+    return da->layer < db->layer ? -1 : 1;
+  }
+  if (da->texture->view != db->texture->view) {
+    return (uintptr_t)da->texture->view < (uintptr_t)db->texture->view ? -1 : 1;
+  }
+  return 0;
+}
 
 // Collect, sort, upload and draw every sprite
-void _gfx_sys_sprite_draw(ecs_iter_t *it) {
-  GFX_SpriteRenderer *sr = ecs_singleton_get_mut(it->world, GFX_SpriteRenderer);
+static void _gfx_sprite_batch_draw(ecs_world_t *world, ecs_entity_t entity,
+                                   const GFX_Viewport *viewport) {
+  (void)viewport;
+  GFX_SpriteRenderer *sr = ecs_singleton_get_mut(world, GFX_SpriteRenderer);
+  GFX_SpriteBatch *batch = ecs_get_mut(world, entity, GFX_SpriteBatch);
 
   // Collect the sprites of every table
-  arrsetlen(sr->draws, 0);
-  ecs_iter_t q = ecs_query_iter(it->world, sr->query);
+  arrsetlen(batch->draws, 0);
+  ecs_iter_t q = ecs_query_iter(world, sr->query);
   while (ecs_query_next(&q)) {
     GFX_Sprite *sprites = ecs_field(&q, GFX_Sprite, 0);
     GFX_Transform *transforms = ecs_field(&q, GFX_Transform, 1);
@@ -130,52 +130,93 @@ void _gfx_sys_sprite_draw(ecs_iter_t *it) {
       glm_mat4_copy(transforms[i], draw.instance.model);
       glm_scale(draw.instance.model, size);
       glm_vec4_copy(sprites[i].uv_rect, draw.instance.uv_rect);
-      arrput(sr->draws, draw);
+      arrput(batch->draws, draw);
     }
   }
 
-  uint32_t count = arrlen(sr->draws);
+  uint32_t count = arrlen(batch->draws);
   if (count == 0) {
     return;
   }
-  qsort(sr->draws, count, sizeof(struct _GFX_SpriteDraw),
+  qsort(batch->draws, count, sizeof(struct _GFX_SpriteDraw),
         _gfx_sprite_draw_compare);
 
   // Upload the instances in draw order
-  arrsetlen(sr->instances, count);
+  arrsetlen(batch->instances, count);
   for (uint32_t i = 0; i < count; i++) {
-    sr->instances[i] = sr->draws[i].instance;
+    batch->instances[i] = batch->draws[i].instance;
   }
-  if (count > sr->instance_capacity) {
-    gfx_vertex_buffer_destroy(&sr->instance_buffer);
-    while (sr->instance_capacity < count) {
-      sr->instance_capacity *= 2;
+  if (count > batch->instance_capacity) {
+    if (batch->instance_buffer.buffer) {
+      gfx_vertex_buffer_destroy(&batch->instance_buffer);
     }
-    sr->instance_buffer = gfx_vertex_buffer_create(
-        sr->instance_capacity * sizeof(GFX_SpriteInstance), NULL);
+    if (batch->instance_capacity == 0) {
+      batch->instance_capacity = GFX_SPRITE_INITIAL_CAPACITY;
+    }
+    while (batch->instance_capacity < count) {
+      batch->instance_capacity *= 2;
+    }
+    batch->instance_buffer = gfx_vertex_buffer_create(
+        batch->instance_capacity * sizeof(GFX_SpriteInstance), NULL);
   }
-  gfx_vertex_buffer_write(&sr->instance_buffer, sr->instances,
+  gfx_vertex_buffer_write(&batch->instance_buffer, batch->instances,
                           count * sizeof(GFX_SpriteInstance));
+
+  // Needs the window, so it's created on the first draw
+  if (!sr->pipeline.pipeline) {
+    // Per instance: model matrix columns (locations 0-3), uv rect (4)
+    GFX_VertexLayout layout = {.step = WGPUVertexStepMode_Instance};
+    for (int i = 0; i < 5; i++) {
+      gfx_vertex_layout_push_f32(&layout, 4);
+    }
+    sr->pipeline =
+        gfx_pipeline_create(&sr->shader, &layout, &sr->material_layout);
+  }
 
   // One draw per run of sprites sharing a texture, instances keep the order
   gfx_pipeline_bind(&sr->pipeline);
-  gfx_vertex_buffer_bind(&sr->instance_buffer);
+  gfx_vertex_buffer_bind(&batch->instance_buffer);
   uint32_t start = 0;
   while (start < count) {
     uint32_t end = start + 1;
-    while (end < count &&
-           sr->draws[end].texture->view == sr->draws[start].texture->view) {
+    while (end < count && batch->draws[end].texture->view ==
+                              batch->draws[start].texture->view) {
       end++;
     }
-    gfx_material_bind(_gfx_sprite_material(sr, sr->draws[start].texture));
+    gfx_material_bind(_gfx_sprite_material(sr, batch->draws[start].texture));
     // 6 vertices, the quad corners come from the vertex index
     gfx_draw_instanced(6, end - start, start);
     start = end;
   }
 
 #ifdef GFX_VERBOSE
-  printf("[i] sys_sprite_draw: %u sprites\n", count);
+  printf("[i] sprite batch: %u sprites\n", count);
 #endif
+}
+
+static void _gfx_sprite_batch_destroy(GFX_SpriteBatch *batch) {
+  arrfree(batch->draws);
+  arrfree(batch->instances);
+  if (batch->instance_buffer.buffer) {
+    gfx_vertex_buffer_destroy(&batch->instance_buffer);
+  }
+  memset(batch, 0, sizeof(*batch));
+}
+
+ECS_DTOR(GFX_SpriteBatch, ptr, { _gfx_sprite_batch_destroy(ptr); })
+
+ECS_MOVE(GFX_SpriteBatch, dst, src, {
+  _gfx_sprite_batch_destroy(dst);
+  *dst = *src;
+  ecs_os_zeromem(src);
+})
+
+// Make the batch a renderer of its viewport
+static void _gfx_sprite_batch_on_add(ecs_iter_t *it) {
+  for (int i = 0; i < it->count; i++) {
+    ecs_set(it->world, it->entities[i], GFX_RenderBatch,
+            {.draw = _gfx_sprite_batch_draw});
+  }
 }
 
 // *** MODULE ***
@@ -193,14 +234,14 @@ void GfxSpriteImport(ecs_world_t *world) {
                     .dtor = ecs_dtor(GFX_SpriteRenderer),
                     .move = ecs_move(GFX_SpriteRenderer),
                 });
-
-  ECS_SYSTEM(world, _gfx_sys_sprite_draw, GfxRenderObjects, 0);
-
-  // Per instance: model matrix columns (locations 0-3), uv rect (4)
-  GFX_VertexLayout instance_layout = {.step = WGPUVertexStepMode_Instance};
-  for (int i = 0; i < 5; i++) {
-    gfx_vertex_layout_push_f32(&instance_layout, 4);
-  }
+  ECS_COMPONENT_DEFINE(world, GFX_SpriteBatch);
+  ecs_set_hooks(world, GFX_SpriteBatch,
+                {
+                    .ctor = flecs_default_ctor,
+                    .dtor = ecs_dtor(GFX_SpriteBatch),
+                    .move = ecs_move(GFX_SpriteBatch),
+                    .on_add = _gfx_sprite_batch_on_add,
+                });
 
   GFX_SpriteRenderer sr = {
       .shader = gfx_shader_create_wgsl("sprite.wgsl", _gfx_sprite_wgsl),
@@ -209,11 +250,6 @@ void GfxSpriteImport(ecs_world_t *world) {
       .query = ecs_query(world, {.terms = {{ecs_id(GFX_Sprite)},
                                            {ecs_id(GFX_Transform)},
                                            {ecs_id(GFX_SpriteLayer)}}}),
-      .instance_capacity = GFX_SPRITE_INITIAL_CAPACITY,
   };
-  sr.pipeline =
-      gfx_pipeline_create(&sr.shader, &instance_layout, &sr.material_layout);
-  sr.instance_buffer = gfx_vertex_buffer_create(
-      sr.instance_capacity * sizeof(GFX_SpriteInstance), NULL);
   ecs_singleton_set_ptr(world, GFX_SpriteRenderer, &sr);
 }

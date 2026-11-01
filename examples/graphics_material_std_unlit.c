@@ -1,6 +1,6 @@
 #include <gfx/gfx.h>
 
-// Uniform of the unlit material, matches mesh3d_std_unlit.wgsl
+// Uniform of the unlit material
 typedef struct {
   vec4 albedo;
 } UnlitUniform;
@@ -39,7 +39,7 @@ int main(void) {
 
   mat4 view_projection;
   glm_mat4_mul(transform_projection, transform_view, view_projection);
-  gfx_frame_set_view_projection(view_projection);
+  vec4 full_window = {0.0f, 0.0f, 1.0f, 1.0f};
 
   // Unlit material: albedo color * albedo texture
   GFX_MaterialLayout unlit =
@@ -55,6 +55,7 @@ int main(void) {
 
   while (!gfx_window_should_close(win)) {
     gfx_frame_begin(win);
+    gfx_frame_view_begin(full_window, view_projection);
 
     gfx_pipeline_bind(&pipeline);
     gfx_material_bind(&material);

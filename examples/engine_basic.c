@@ -7,9 +7,6 @@ int main(void) {
       GFX_GRAPHICS_FEATURE_CULL_BACK,
   };
   GFX_ProjectSettings settings = {
-      .window_width = 800,
-      .window_height = 600,
-      .window_name = "Engine Basic Test",
       .graphics_features = graphics_features,
       .graphics_features_count = 2,
       .clear_color = {0.2, 0.3, 0.4, 1.0},
@@ -20,6 +17,8 @@ int main(void) {
     gfx_terminate(world);
     return 1;
   }
+  ecs_singleton_set(world, GFX_Surface,
+                    {.title = "Engine Basic", .width = 800, .height = 600});
 
   ECS_IMPORT(world, GfxTransform);
   ECS_IMPORT(world, GfxCamera);

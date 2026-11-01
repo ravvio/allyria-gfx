@@ -44,7 +44,7 @@ void gfx_geometry2d_destroy(const GFX_Geometry2D *geometry) {
   gfx_index_buffer_destroy(&geometry->_ibo);
 }
 
-// Draw with the bound pipeline, between gfx_frame_begin and gfx_frame_end
+// Draw with the bound pipeline
 void gfx_geometry2d_draw(const GFX_Geometry2D *geometry) {
   gfx_vertex_buffer_bind(&geometry->_vbo);
   gfx_index_buffer_bind(&geometry->_ibo);

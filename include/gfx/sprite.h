@@ -34,14 +34,20 @@ typedef struct {
   vec4 uv_rect;
 } GFX_SpriteInstance;
 
-// Renderer singleton, draws all sprites instanced, one draw per run of
-// sprites sharing a texture
+// Renderer singleton, what every sprite batch shares
 typedef struct {
   GFX_Shader shader;
   GFX_MaterialLayout material_layout;
   GFX_Pipeline pipeline;
   ecs_query_t *query;
 
+  // One material per texture view (hashmap)
+  struct _GFX_SpriteMaterial *materials;
+} GFX_SpriteRenderer;
+extern ECS_COMPONENT_DECLARE(GFX_SpriteRenderer);
+
+// Draws every sprite into the viewport it is a child of
+typedef struct {
   // Instance vertex buffer, grows when needed
   GFX_VertexBuffer instance_buffer;
   uint32_t instance_capacity;
@@ -49,11 +55,8 @@ typedef struct {
   // Per frame scratch (dynamic arrays)
   struct _GFX_SpriteDraw *draws;
   GFX_SpriteInstance *instances;
-
-  // One material per texture view (hashmap)
-  struct _GFX_SpriteMaterial *materials;
-} GFX_SpriteRenderer;
-extern ECS_COMPONENT_DECLARE(GFX_SpriteRenderer);
+} GFX_SpriteBatch;
+extern ECS_COMPONENT_DECLARE(GFX_SpriteBatch);
 
 void GfxSpriteImport(ecs_world_t *world);
 

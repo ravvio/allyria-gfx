@@ -14,8 +14,7 @@ typedef struct {
 // data can be NULL to only allocate
 GFX_VertexBuffer gfx_vertex_buffer_create(uint32_t size, const void *data);
 void gfx_vertex_buffer_destroy(const GFX_VertexBuffer *vb);
-// Overwrite the start of the buffer, like uniforms the last write of the
-// frame wins
+// Overwrite the start of the buffer, the last write of the frame wins
 void gfx_vertex_buffer_write(const GFX_VertexBuffer *vb, const void *data,
                              uint32_t size);
 void gfx_vertex_buffer_bind(const GFX_VertexBuffer *vb);
@@ -79,12 +78,12 @@ void gfx_pipeline_bind(const GFX_Pipeline *pipeline);
 //   @group(0) @binding(0) var<uniform> view_projection: mat4x4f;
 //   @group(1) @binding(0) var<uniform> model: mat4x4f;
 
-// Camera projection * view, once per frame (last call wins)
-void gfx_frame_set_view_projection(mat4 view_projection);
-// Before each draw that needs its own model, between frame begin and end
+// Draw the next calls into rect with view_projection
+bool gfx_frame_view_begin(const vec4 rect, mat4 view_projection);
+// Model matrix of the next draws
 void gfx_draw_set_model(mat4 model);
 
-// Draw, between gfx_frame_begin and gfx_frame_end
+// Draw, during a frame
 
 void gfx_draw_indexed(uint32_t count);
 // Without index buffer, instances read per-instance vertex buffers from

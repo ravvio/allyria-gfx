@@ -1,7 +1,5 @@
-// Engine uniforms:
-// - group 0, frame: view-projection matrix, written once per frame
-// - group 1, object: model matrix per draw, stored in a per-frame arena of
-//   256 byte slots, bound with a dynamic offset and uploaded at frame end
+// Engine uniforms: the view-projection of each view and the model of each
+// draw, uploaded together once per frame
 
 #include "gfx_internal.h"
 #include <gfx/render.h>
@@ -12,19 +10,17 @@
 // Dynamic offsets must be multiples of minUniformBufferOffsetAlignment, which
 // is at most 256 on every device
 #define GFX_UNIFORM_SLOT_SIZE 256
-// Draws per frame with their own model matrix (1MB), raise it or size it from
-// the previous frame if games need more
+// Matrices per frame (1MB), raise it if games need more
 #define GFX_UNIFORM_SLOT_COUNT 4096
 
 static struct {
   WGPUBindGroupLayout frame_layout;
   WGPUBindGroupLayout object_layout;
-  WGPUBuffer frame_buffer;
   WGPUBindGroup frame_group;
   WGPUBuffer object_buffer;
   WGPUBindGroup object_group;
 
-  // CPU copy of the object arena, uploaded at frame end
+  // Matrices of this frame, waiting for the upload
   uint8_t *object_data;
   // Slots used this frame, can go past the capacity to report overflows once
   uint32_t object_count;
@@ -74,28 +70,22 @@ GFX_Error gfx_uniforms_init(void) {
     return GFX_ERR_FAILED;
   }
 
-  _uniforms.frame_layout = _gfx_uniform_layout(WGPU_FALSE);
+  _uniforms.frame_layout = _gfx_uniform_layout(WGPU_TRUE);
   _uniforms.object_layout = _gfx_uniform_layout(WGPU_TRUE);
 
   _gfx.pipeline_layout = gfx_uniforms_pipeline_layout(NULL);
 
-  _uniforms.frame_buffer = _gfx_uniform_buffer(sizeof(mat4));
-  _uniforms.frame_group =
-      _gfx_uniform_group(_uniforms.frame_layout, _uniforms.frame_buffer);
   _uniforms.object_buffer = _gfx_uniform_buffer(
       (uint64_t)GFX_UNIFORM_SLOT_COUNT * GFX_UNIFORM_SLOT_SIZE);
+  _uniforms.frame_group =
+      _gfx_uniform_group(_uniforms.frame_layout, _uniforms.object_buffer);
   _uniforms.object_group =
       _gfx_uniform_group(_uniforms.object_layout, _uniforms.object_buffer);
-
-  // Identity until a camera is set
-  mat4 identity = GLM_MAT4_IDENTITY_INIT;
-  gfx_frame_set_view_projection(identity);
 
   return GFX_ERR_OK;
 }
 
-// Every pipeline layout shares the frame and object group layouts, so their
-// bind groups work across pipelines
+// Pipeline layout with an optional material
 WGPUPipelineLayout gfx_uniforms_pipeline_layout(WGPUBindGroupLayout material) {
   WGPUBindGroupLayout layouts[] = {
       _uniforms.frame_layout,
@@ -115,7 +105,6 @@ void gfx_uniforms_terminate(void) {
   wgpuBindGroupRelease(_uniforms.object_group);
   wgpuBufferRelease(_uniforms.object_buffer);
   wgpuBindGroupRelease(_uniforms.frame_group);
-  wgpuBufferRelease(_uniforms.frame_buffer);
   wgpuPipelineLayoutRelease(_gfx.pipeline_layout);
   wgpuBindGroupLayoutRelease(_uniforms.object_layout);
   wgpuBindGroupLayoutRelease(_uniforms.frame_layout);
@@ -123,18 +112,50 @@ void gfx_uniforms_terminate(void) {
   memset(&_uniforms, 0, sizeof(_uniforms));
 }
 
-// Reset the arena and bind both groups to the new render pass
-void gfx_uniforms_frame_begin(void) {
-  _uniforms.object_count = 0;
+// Store a matrix for this frame at offset, false when full
+static bool _gfx_uniforms_push(mat4 matrix, uint32_t *offset) {
+  if (_uniforms.object_count >= GFX_UNIFORM_SLOT_COUNT) {
+    if (_uniforms.object_count++ == GFX_UNIFORM_SLOT_COUNT) {
+      fprintf(stderr, "[e] uniform arena full (%d matrices)\n",
+              GFX_UNIFORM_SLOT_COUNT);
+    }
+    return false;
+  }
+  *offset = _uniforms.object_count * GFX_UNIFORM_SLOT_SIZE;
+  memcpy(_uniforms.object_data + *offset, matrix, sizeof(mat4));
+  _uniforms.object_count += 1;
+  return true;
+}
 
+// Bind both groups to the identity matrix
+static void _gfx_uniforms_bind_identity(void) {
   uint32_t offset = 0;
-  wgpuRenderPassEncoderSetBindGroup(_gfx.pass, 0, _uniforms.frame_group, 0,
-                                    NULL);
+  wgpuRenderPassEncoderSetBindGroup(_gfx.pass, 0, _uniforms.frame_group, 1,
+                                    &offset);
   wgpuRenderPassEncoderSetBindGroup(_gfx.pass, 1, _uniforms.object_group, 1,
                                     &offset);
 }
 
-// Upload the model matrices of this frame, before the submit
+// Start the frame's matrices, the first one is the identity
+void gfx_uniforms_frame_begin(void) {
+  _uniforms.object_count = 0;
+  mat4 identity = GLM_MAT4_IDENTITY_INIT;
+  uint32_t offset;
+  _gfx_uniforms_push(identity, &offset);
+  _gfx_uniforms_bind_identity();
+}
+
+// Prepare uniforms for the new pass
+void gfx_uniforms_view_begin(mat4 view_projection) {
+  _gfx_uniforms_bind_identity();
+  uint32_t offset;
+  if (_gfx_uniforms_push(view_projection, &offset)) {
+    wgpuRenderPassEncoderSetBindGroup(_gfx.pass, 0, _uniforms.frame_group, 1,
+                                      &offset);
+  }
+}
+
+// Upload the matrices of this frame, before the submit
 void gfx_uniforms_frame_end(void) {
   uint32_t count = _uniforms.object_count < GFX_UNIFORM_SLOT_COUNT
                        ? _uniforms.object_count
@@ -146,31 +167,12 @@ void gfx_uniforms_frame_end(void) {
   }
 }
 
-// Set the camera projection * view for the next frame
-void gfx_frame_set_view_projection(mat4 view_projection) {
-  wgpuQueueWriteBuffer(_gfx.queue, _uniforms.frame_buffer, 0, view_projection,
-                       sizeof(mat4));
-}
-
 // Set the model matrix used by the next draws
 void gfx_draw_set_model(mat4 model) {
-  if (!_gfx.pass) {
-    return;
+  // When full, extra draws keep the last model
+  uint32_t offset;
+  if (_gfx.pass && _gfx_uniforms_push(model, &offset)) {
+    wgpuRenderPassEncoderSetBindGroup(_gfx.pass, 1, _uniforms.object_group, 1,
+                                      &offset);
   }
-
-  if (_uniforms.object_count >= GFX_UNIFORM_SLOT_COUNT) {
-    // Full, extra draws keep the last bound model
-    if (_uniforms.object_count++ == GFX_UNIFORM_SLOT_COUNT) {
-      fprintf(stderr, "[e] uniform arena full (%d draws), see gfx_uniforms.c\n",
-              GFX_UNIFORM_SLOT_COUNT);
-    }
-    return;
-  }
-
-  uint32_t offset = _uniforms.object_count * GFX_UNIFORM_SLOT_SIZE;
-  memcpy(_uniforms.object_data + offset, model, sizeof(mat4));
-  _uniforms.object_count += 1;
-
-  wgpuRenderPassEncoderSetBindGroup(_gfx.pass, 1, _uniforms.object_group, 1,
-                                    &offset);
 }

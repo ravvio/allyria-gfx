@@ -43,9 +43,9 @@ GFX_Material gfx_material_create(const GFX_MaterialLayout *layout,
                                  const void *uniform_data,
                                  const GFX_Texture2D *const *textures);
 void gfx_material_destroy(const GFX_Material *material);
-// Update the uniform, like the camera the last value of the frame wins
+// Update the uniform, the last value of the frame wins
 void gfx_material_set_uniform(const GFX_Material *material, const void *data);
-// Use the material for the next draws, between frame begin and end
+// Use the material for the next draws of the frame
 void gfx_material_bind(const GFX_Material *material);
 
 #endif

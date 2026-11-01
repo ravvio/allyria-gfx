@@ -36,3 +36,4 @@ endif()
 
 add_example(engine_basic)
 add_example(engine_sprites)
+add_example(engine_viewports)

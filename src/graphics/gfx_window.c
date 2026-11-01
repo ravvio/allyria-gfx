@@ -149,7 +149,7 @@ GFX_Error gfx_graphics_init() {
   return GFX_ERR_OK;
 }
 
-// Terminate the gfx grpahics library
+// Terminate the gfx graphics library
 void gfx_graphics_terminate() {
   gfx_materials_terminate();
   gfx_uniforms_terminate();
@@ -283,7 +283,81 @@ void gfx_color_buffer_set_clear(const GFX_ColorRGBA color) {
   _gfx.clear_color = (WGPUColor){color[0], color[1], color[2], color[3]};
 }
 
-// Acquire the next surface texture and begin the frame render pass (cleared)
+// Begin a render pass on the frame
+static void _gfx_pass_begin(WGPULoadOp color_load) {
+  WGPURenderPassColorAttachment color = WGPU_RENDER_PASS_COLOR_ATTACHMENT_INIT;
+  color.view = _gfx.view;
+  color.loadOp = color_load;
+  color.storeOp = WGPUStoreOp_Store;
+  color.clearValue = _gfx.clear_color;
+
+  WGPURenderPassDepthStencilAttachment depth =
+      WGPU_RENDER_PASS_DEPTH_STENCIL_ATTACHMENT_INIT;
+  depth.view = _gfx.depth_view;
+  depth.depthLoadOp = WGPULoadOp_Clear;
+  depth.depthStoreOp = WGPUStoreOp_Discard;
+  depth.depthClearValue = 1.0f;
+
+  WGPURenderPassDescriptor pass_desc = WGPU_RENDER_PASS_DESCRIPTOR_INIT;
+  pass_desc.colorAttachmentCount = 1;
+  pass_desc.colorAttachments = &color;
+  pass_desc.depthStencilAttachment = &depth;
+  _gfx.pass = wgpuCommandEncoderBeginRenderPass(_gfx.encoder, &pass_desc);
+}
+
+static void _gfx_pass_end(void) {
+  wgpuRenderPassEncoderEnd(_gfx.pass);
+  wgpuRenderPassEncoderRelease(_gfx.pass);
+  _gfx.pass = NULL;
+}
+
+static uint32_t _gfx_viewport_edge(float t, uint32_t size) {
+  float px = roundf(t * (float)size);
+  if (px <= 0.0f) {
+    return 0;
+  }
+  return px >= (float)size ? size : (uint32_t)px;
+}
+
+// Pixel position and size of a viewport, clamped to the image
+void gfx_viewport_pixels(const float rect[4], uint32_t width, uint32_t height,
+                         uint32_t out[4]) {
+  uint32_t x0 = _gfx_viewport_edge(rect[0], width);
+  uint32_t x1 = _gfx_viewport_edge(rect[0] + rect[2], width);
+  uint32_t y0 = _gfx_viewport_edge(rect[1], height);
+  uint32_t y1 = _gfx_viewport_edge(rect[1] + rect[3], height);
+  out[0] = x0;
+  out[1] = y0;
+  out[2] = x1 > x0 ? x1 - x0 : 0;
+  out[3] = y1 > y0 ? y1 - y0 : 0;
+}
+
+// Draw the next calls into rect with view_projection
+bool gfx_frame_view_begin(const vec4 rect, mat4 view_projection) {
+  if (!_gfx.pass) {
+    return false;
+  }
+  uint32_t px[4];
+  gfx_viewport_pixels(rect, _gfx.width, _gfx.height, px);
+  if (px[2] == 0 || px[3] == 0) {
+    return false;
+  }
+
+  // A new pass so views don't share depth
+  if (_gfx.view_count > 0) {
+    _gfx_pass_end();
+    _gfx_pass_begin(WGPULoadOp_Load);
+  }
+  _gfx.view_count++;
+
+  wgpuRenderPassEncoderSetViewport(_gfx.pass, (float)px[0], (float)px[1],
+                                   (float)px[2], (float)px[3], 0.0f, 1.0f);
+  wgpuRenderPassEncoderSetScissorRect(_gfx.pass, px[0], px[1], px[2], px[3]);
+  gfx_uniforms_view_begin(view_projection);
+  return true;
+}
+
+// Begin drawing a frame on window
 void gfx_frame_begin(GFX_Window *window) {
   _GFX_Window *win = window;
 
@@ -310,38 +384,24 @@ void gfx_frame_begin(GFX_Window *window) {
 
   _gfx.texture = surface_texture.texture;
   _gfx.view = wgpuTextureCreateView(_gfx.texture, NULL);
+  _gfx.depth_view = win->depth_view;
+  _gfx.width = win->width;
+  _gfx.height = win->height;
+  _gfx.view_count = 0;
   _gfx.encoder = wgpuDeviceCreateCommandEncoder(_gfx.device, NULL);
 
-  WGPURenderPassColorAttachment color = WGPU_RENDER_PASS_COLOR_ATTACHMENT_INIT;
-  color.view = _gfx.view;
-  color.loadOp = WGPULoadOp_Clear;
-  color.storeOp = WGPUStoreOp_Store;
-  color.clearValue = _gfx.clear_color;
-
-  WGPURenderPassDepthStencilAttachment depth =
-      WGPU_RENDER_PASS_DEPTH_STENCIL_ATTACHMENT_INIT;
-  depth.view = win->depth_view;
-  depth.depthLoadOp = WGPULoadOp_Clear;
-  depth.depthStoreOp = WGPUStoreOp_Discard;
-  depth.depthClearValue = 1.0f;
-
-  WGPURenderPassDescriptor pass_desc = WGPU_RENDER_PASS_DESCRIPTOR_INIT;
-  pass_desc.colorAttachmentCount = 1;
-  pass_desc.colorAttachments = &color;
-  pass_desc.depthStencilAttachment = &depth;
-  _gfx.pass = wgpuCommandEncoderBeginRenderPass(_gfx.encoder, &pass_desc);
+  _gfx_pass_begin(WGPULoadOp_Clear);
   gfx_uniforms_frame_begin();
 }
 
-// End the frame render pass, submit and present
+// Finish the frame and show it on window
 void gfx_frame_end(GFX_Window *window) {
   // No frame this tick (minimized or surface lost)
   if (!_gfx.pass) {
     return;
   }
 
-  wgpuRenderPassEncoderEnd(_gfx.pass);
-  wgpuRenderPassEncoderRelease(_gfx.pass);
+  _gfx_pass_end();
 
   WGPUCommandBuffer commands = wgpuCommandEncoderFinish(_gfx.encoder, NULL);
   // Queue writes land before the submitted commands run

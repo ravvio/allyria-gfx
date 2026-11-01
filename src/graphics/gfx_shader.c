@@ -141,7 +141,7 @@ GFX_Pipeline gfx_pipeline_create(const GFX_Shader *shader,
     desc.primitive.cullMode = WGPUCullMode_Back;
   }
 
-  // Every frame has a depth attachment, so every pipeline declares it
+  // Every frame has a depth buffer, so every pipeline needs a depth state
   WGPUDepthStencilState depth = WGPU_DEPTH_STENCIL_STATE_INIT;
   depth.format = GFX_DEPTH_FORMAT;
   if (_gfx_feature_enabled(GFX_GRAPHICS_FEATURE_DEPTH_TESTING)) {

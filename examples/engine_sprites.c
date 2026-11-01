@@ -8,9 +8,6 @@ int main(void) {
       GFX_GRAPHICS_FEATURE_ALPHA_BLEND,
   };
   GFX_ProjectSettings settings = {
-      .window_width = 800,
-      .window_height = 600,
-      .window_name = "Engine Basic Test",
       .graphics_features = graphics_features,
       .graphics_features_count =
           sizeof(graphics_features) / sizeof(graphics_features[0]),
@@ -22,12 +19,12 @@ int main(void) {
     gfx_terminate(world);
     return 1;
   }
+  ecs_singleton_set(world, GFX_Surface,
+                    {.title = "Engine Sprites", .width = 800, .height = 600});
 
   ECS_IMPORT(world, GfxTransform);
   ECS_IMPORT(world, GfxCamera);
   ECS_IMPORT(world, GfxSprite);
-
-  GFX_Engine *engine = ecs_singleton_get_mut(world, GFX_Engine);
 
   ecs_entity_t cam = ecs_entity(world, {.name = "Camera"});
   ecs_set(world, cam, GFX_Camera,
@@ -40,8 +37,10 @@ int main(void) {
   ecs_set(world, cam, GFX_CameraPixel, {.ratio = 128.0});
   ecs_set(world, cam, GFX_Transform, GLM_MAT4_IDENTITY_INIT);
 
-  // Set main camera
-  engine->main_camera_id = cam;
+  // The whole window shows the camera, with the sprites drawn into it
+  ecs_entity_t view = ecs_entity(world, {.name = "View"});
+  ecs_set(world, view, GFX_Viewport, {.camera = cam, .rect = {0, 0, 1, 1}});
+  ecs_add(world, ecs_new_w_pair(world, EcsChildOf, view), GFX_SpriteBatch);
 
   GFX_Texture2D atlas =
       gfx_texture2d_load("./assets/textures/sprites/sensei.png",

@@ -9,9 +9,6 @@
 // Setup
 
 typedef struct {
-  const char *window_name;
-  int window_width;
-  int window_height;
   enum GFX_GraphicsFeature *graphics_features;
   int graphics_features_count;
   GFX_ColorRGBA clear_color;
@@ -24,9 +21,11 @@ void gfx_run(ecs_world_t *world);
 // Surface
 
 typedef struct {
-  GFX_Window *window;
+  const char *title;
   int width;
   int height;
+
+  GFX_Window *window;
   float scale_x;
   float scale_y;
   int true_width;
@@ -47,28 +46,31 @@ extern ECS_TAG_DECLARE(GfxRenderGUI);
 extern ECS_TAG_DECLARE(GfxEndRender);
 extern ECS_TAG_DECLARE(GfxPostRender);
 
-typedef struct {
-  // The camera projection * view * inverse(transform)
-  mat4 t_camera_mvp;
-} GFX_Uniforms;
-extern ECS_COMPONENT_DECLARE(GFX_Uniforms);
-
 void GfxRendererImport(ecs_world_t *world);
 
 // Viewport
 
+// What camera sees, drawn into a rect of the window by the renderers that are
+// children of the viewport
 typedef struct {
+  ecs_entity_t camera;
+  // {x, y, width, height} in fractions of the window, from the top left
+  vec4 rect;
+  // Higher orders draw later, on top
+  int32_t order;
 } GFX_Viewport;
 extern ECS_COMPONENT_DECLARE(GFX_Viewport);
 
-// Engine
-
+// A renderer, draws into the viewport it is a child of
 typedef struct {
-  ecs_entity_t surface_id;
-  ecs_entity_t uniforms_id;
-  ecs_entity_t main_camera_id;
-} GFX_Engine;
-extern ECS_COMPONENT_DECLARE(GFX_Engine);
+  void (*draw)(ecs_world_t *world, ecs_entity_t batch,
+               const GFX_Viewport *viewport);
+} GFX_RenderBatch;
+extern ECS_COMPONENT_DECLARE(GFX_RenderBatch);
+
+void gfx_viewport_register(ecs_world_t *world);
+
+// Engine
 
 void GfxEngineImport(ecs_world_t *world);
 

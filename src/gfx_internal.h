@@ -16,22 +16,28 @@ typedef struct {
   WGPUDevice device;
   WGPUQueue queue;
   WGPUTextureFormat surface_format;
-  // Pipelines without a material: group 0 frame, group 1 object
+  // Layout of pipelines without a material
   WGPUPipelineLayout pipeline_layout;
   WGPUColor clear_color;
-  // Enabled GFX_GraphicsFeature bits, baked into pipelines
+  // Enabled graphics features
   uint32_t features;
 
-  // Current frame, set between gfx_frame_begin and gfx_frame_end
+  // Current frame
   WGPUTexture texture;
   WGPUTextureView view;
+  WGPUTextureView depth_view;
+  // Size of the image being drawn this frame, in pixels
+  uint32_t width;
+  uint32_t height;
   WGPUCommandEncoder encoder;
-  // NULL when the frame was skipped, draw calls are then ignored
+  // NULL when the frame was skipped
   WGPURenderPassEncoder pass;
+  // Views begun this frame
+  uint32_t view_count;
 } _GFX_State;
 extern _GFX_State _gfx;
 
-// Depth buffer of every window, pipelines must match it
+// Depth buffer format of every window
 #define GFX_DEPTH_FORMAT WGPUTextureFormat_Depth24Plus
 
 // Uniforms
@@ -40,8 +46,16 @@ GFX_Error gfx_uniforms_init(void);
 void gfx_uniforms_terminate(void);
 void gfx_uniforms_frame_begin(void);
 void gfx_uniforms_frame_end(void);
-// Frame and object groups, plus the material group if not NULL
+// Prepare uniforms for the new pass
+void gfx_uniforms_view_begin(mat4 view_projection);
+// Pipeline layout with an optional material
 WGPUPipelineLayout gfx_uniforms_pipeline_layout(WGPUBindGroupLayout material);
+
+// Viewports
+
+// Pixel position and size of a viewport, clamped to the image
+void gfx_viewport_pixels(const float rect[4], uint32_t width, uint32_t height,
+                         uint32_t out[4]);
 
 // Texture mipmaps
 
