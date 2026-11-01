@@ -48,7 +48,7 @@ extern ECS_TAG_DECLARE(GfxEndRender);
 extern ECS_TAG_DECLARE(GfxPostRender);
 
 typedef struct {
-  // The camera projection * view * model
+  // The camera projection * view * inverse(transform)
   mat4 t_camera_mvp;
 } GFX_Uniforms;
 extern ECS_COMPONENT_DECLARE(GFX_Uniforms);

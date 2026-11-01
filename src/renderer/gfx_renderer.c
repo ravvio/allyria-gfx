@@ -39,8 +39,12 @@ void _gfx_sys_start_render(ecs_iter_t *it) {
   if (engine->main_camera_id > 0) {
     GFX_Camera *cam =
         ecs_get_mut(it->world, engine->main_camera_id, GFX_Camera);
+    // The world moves opposite to the camera: use the inverse of its transform
+    mat4 world_to_camera;
+    glm_mat4_inv(cam->model, world_to_camera);
     glm_mat4_mul(cam->projection, cam->view, uniforms->t_camera_mvp);
-    glm_mat4_mul(uniforms->t_camera_mvp, cam->model, uniforms->t_camera_mvp);
+    glm_mat4_mul(uniforms->t_camera_mvp, world_to_camera,
+                 uniforms->t_camera_mvp);
   }
   gfx_frame_set_view_projection(uniforms->t_camera_mvp);
 
