@@ -1,4 +1,4 @@
-#include "../include/gfx/graphics/gfx_graphics.h"
+#include <gfx/gfx.h>
 
 int main(void) {
   if (gfx_graphics_init() != GFX_ERR_OK) {

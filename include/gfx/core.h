@@ -1,25 +1,16 @@
-#ifndef GFX_COMMON_DECL
-#define GFX_COMMON_DECL
+#ifndef GFX_CORE_DECL
+#define GFX_CORE_DECL
 
-// Include libraries
-#include <math.h>
 #include <stdint.h>
-#include <sys/types.h>
 
 // WebGPU clip space depth is [0, 1]
 #define CGLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "../cglm/cglm.h"
-#include "../flecs/flecs.h"
+#include <cglm/cglm.h>
 
-#include "../stb_ds.h"
-#include "../stb_image.h"
+// Color
 
-// Definitions
-
-typedef uint8_t GFX_Boolean;
-
-#define GFX_TRUE 1
-#define GFX_FALSE 0
+typedef vec3 GFX_ColorRGB;
+typedef vec4 GFX_ColorRGBA;
 
 // Error
 

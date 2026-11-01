@@ -1,9 +1,11 @@
-// Instanced sprites (see SOURCES.md, "Sprites"): every frame the sprites are
-// collected, sorted by (layer, texture) and uploaded as one instance buffer,
-// then drawn with one draw per run of sprites sharing a texture.
+// Instanced sprites: every frame the sprites are collected, sorted by (layer,
+// texture) and uploaded as one instance buffer, then drawn with one draw per
+// run of sprites sharing a texture.
 
-#include "../../include/gfx/sprite/gfx_sprite.h"
-#include "../../include/gfx/gfx.h"
+#include <gfx/engine.h>
+#include <gfx/sprite.h>
+#include <gfx/transform.h>
+#include <stb_ds.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +27,10 @@ struct _GFX_SpriteMaterial {
 };
 
 #define GFX_SPRITE_INITIAL_CAPACITY 64
+
+static const char _gfx_sprite_wgsl[] = {
+#embed "sprite.wgsl"
+    , 0};
 
 // *** SPRITE ***
 
@@ -197,7 +203,7 @@ void GfxSpriteImport(ecs_world_t *world) {
   }
 
   GFX_SpriteRenderer sr = {
-      .shader = gfx_shader_create("./assets/shaders/sprite.wgsl"),
+      .shader = gfx_shader_create_wgsl("sprite.wgsl", _gfx_sprite_wgsl),
       // No uniform, one texture
       .material_layout = gfx_material_layout_create(0, 1),
       .query = ecs_query(world, {.terms = {{ecs_id(GFX_Sprite)},

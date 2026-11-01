@@ -1,8 +1,11 @@
 #ifndef GFX_SPRITE_DECL
 #define GFX_SPRITE_DECL
 
-#include "../gfx_common.h"
-#include "../graphics/gfx_graphics.h"
+#include <flecs.h>
+#include <gfx/core.h>
+#include <gfx/material.h>
+#include <gfx/render.h>
+#include <gfx/texture.h>
 
 // A rect of a texture atlas, drawn as a quad of its size in pixels centered
 // on its GFX_Transform. Sprites need GFX_Sprite, GFX_Transform and
@@ -25,7 +28,7 @@ GFX_Sprite gfx_sprite_create(const GFX_Texture2D *texture, int offset_x,
 typedef uint8_t GFX_SpriteLayer;
 extern ECS_COMPONENT_DECLARE(GFX_SpriteLayer);
 
-// Per-instance vertex data of sprite.wgsl (80 bytes)
+// Per-instance vertex data of the sprite shader (80 bytes)
 typedef struct {
   mat4 model;
   vec4 uv_rect;
@@ -43,11 +46,11 @@ typedef struct {
   GFX_VertexBuffer instance_buffer;
   uint32_t instance_capacity;
 
-  // Per frame scratch (stb_ds arrays)
+  // Per frame scratch (dynamic arrays)
   struct _GFX_SpriteDraw *draws;
   GFX_SpriteInstance *instances;
 
-  // One material per texture view (stb_ds hashmap)
+  // One material per texture view (hashmap)
   struct _GFX_SpriteMaterial *materials;
 } GFX_SpriteRenderer;
 extern ECS_COMPONENT_DECLARE(GFX_SpriteRenderer);

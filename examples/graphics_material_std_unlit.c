@@ -1,4 +1,4 @@
-#include "../include/gfx/graphics/gfx_graphics.h"
+#include <gfx/gfx.h>
 
 // Uniform of the unlit material, matches mesh3d_std_unlit.wgsl
 typedef struct {

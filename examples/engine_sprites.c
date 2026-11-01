@@ -1,10 +1,10 @@
 #define GFX_VERBOSE
 
-#include "../include/gfx/gfx.h"
+#include <gfx/gfx.h>
 #include <stdio.h>
 
 int main(void) {
-  enum GFX_Graphics_Feature graphics_features[] = {
+  enum GFX_GraphicsFeature graphics_features[] = {
       GFX_GRAPHICS_FEATURE_ALPHA_BLEND,
   };
   GFX_ProjectSettings settings = {
@@ -36,7 +36,7 @@ int main(void) {
               .view = GLM_MAT4_IDENTITY_INIT,
               .model = GLM_MAT4_IDENTITY_INIT,
           });
-  ecs_set(world, cam, GFX_CameraOrtho, {.aspect = 800.0 / 600.0});
+  ecs_set(world, cam, GFX_CameraOrtho, {.size = 1.0});
   ecs_set(world, cam, GFX_CameraPixel, {.ratio = 128.0});
   ecs_set(world, cam, GFX_Transform, GLM_MAT4_IDENTITY_INIT);
 

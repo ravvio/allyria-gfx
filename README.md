@@ -1,6 +1,6 @@
 # GFX Engine
 
-A small C99 game engine that runs natively and in the browser.
+A small C23 game engine library that runs natively and in the browser.
 
 Using:
 - [flecs](https://github.com/SanderMertens/flecs) for the ECS
@@ -13,10 +13,32 @@ Using:
 - [stb_image and stb_ds](https://github.com/nothings/stb) for image loading and
   dynamic arrays
 
+## Use it in a project
+
+Add the engine to your CMake project, for example with `FetchContent` or as a
+subdirectory, and link the `gfx` target:
+
+```cmake
+add_subdirectory(allyria-gfx)
+target_link_libraries(my_game PRIVATE gfx)
+```
+
+The target brings its include directory and dependencies with it, so headers
+are included as `<gfx/...>`:
+
+```c
+#include <gfx/gfx.h>
+```
+
+Your game ships its own assets. The engine needs no files at runtime.
+
 ## Build
 
-Requirements: CMake 3.22+ and a C/C++ compiler. The dependencies (GLFW, Dawn,
-cglm, glfw3webgpu) are downloaded by CMake.
+Requirements: CMake 3.22+ and a C/C++ compiler with C23 `#embed` support
+(Clang 19+ or GCC 15+, MSVC isn't supported). The dependencies (GLFW, Dawn,
+glfw3webgpu) are downloaded by CMake.
+
+When built on its own, the project also builds the examples and the tests.
 
 ### Native
 
@@ -39,16 +61,16 @@ Run the tests:
 ctest --test-dir build
 ```
 
-Examples are written to `build/Debug/<arch>/` (e.g. `arm64` or `x86_64`) and
-must be run from there, because assets are loaded from `./assets`:
+Examples are written to `build/examples/` and must be run from there, because
+they load their assets from `./assets`:
 
 ```sh
-cd build/Debug/<arch>
+cd build/examples
 ./engine_sprites
 ```
 
-The assets are copied at configure time, so re-run `cmake -B build` after
-changing anything in `assets/`.
+The examples' assets are copied at configure time, so re-run `cmake -B build`
+after changing anything in `examples/assets/`.
 
 ### Browser
 
@@ -77,7 +99,7 @@ The pages must be served over HTTP, opening the files directly doesn't work.
 Any static file server works, for example Python's (bound to localhost only):
 
 ```sh
-python3 -m http.server 8000 --bind 127.0.0.1 -d build/web/Debug/x86
+python3 -m http.server 8000 --bind 127.0.0.1 -d build/web/examples
 ```
 
 Then open <http://localhost:8000/engine_sprites.html> in a browser with WebGPU

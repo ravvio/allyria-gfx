@@ -1,16 +1,15 @@
-// This is the header that includes internal functions of the WebGPU backend
+// Internal to the library: shared WebGPU state and backend functions
 
-#ifndef GFX_WGPU_DECL
-#define GFX_WGPU_DECL
+#ifndef GFX_INTERNAL_DECL
+#define GFX_INTERNAL_DECL
 
-#include "../gfx_common.h"
-#include "gfx_graphics.h"
+#include <gfx/core.h>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <webgpu/webgpu.h>
 
-// WebGPU state, the equivalent of the GL context (defined in gfx_window.c)
+// WebGPU state, the equivalent of the GL context
 typedef struct {
   WGPUInstance instance;
   WGPUAdapter adapter;
@@ -20,7 +19,7 @@ typedef struct {
   // Pipelines without a material: group 0 frame, group 1 object
   WGPUPipelineLayout pipeline_layout;
   WGPUColor clear_color;
-  // Enabled GFX_Graphics_Feature bits, baked into pipelines
+  // Enabled GFX_GraphicsFeature bits, baked into pipelines
   uint32_t features;
 
   // Current frame, set between gfx_frame_begin and gfx_frame_end
@@ -35,7 +34,7 @@ extern _GFX_State _gfx;
 // Depth buffer of every window, pipelines must match it
 #define GFX_DEPTH_FORMAT WGPUTextureFormat_Depth24Plus
 
-// Uniforms (gfx_uniforms.c)
+// Uniforms
 
 GFX_Error gfx_uniforms_init(void);
 void gfx_uniforms_terminate(void);
@@ -44,13 +43,13 @@ void gfx_uniforms_frame_end(void);
 // Frame and object groups, plus the material group if not NULL
 WGPUPipelineLayout gfx_uniforms_pipeline_layout(WGPUBindGroupLayout material);
 
-// Texture mipmaps (gfx_texture.c), exposed for tests/test_texture_mips.c
+// Texture mipmaps
 
 uint32_t gfx_texture_mip_count(int width, int height);
 void gfx_texture_downsample(const uint8_t *src, int src_w, int src_h,
                             uint8_t *dst, int dst_w, int dst_h);
 
-// Materials (gfx_material.c)
+// Materials
 
 void gfx_materials_init(void);
 void gfx_materials_terminate(void);
@@ -66,8 +65,9 @@ void gfx_materials_terminate(void);
 
 // Error checking glfw
 
+// The check and log return false if there were errors
 void gfx_glfw_errors_clear(void);
-int gfx_glfw_errors_check(void);
-int gfx_glfw_errors_log(const char *function, const char *file, int line);
+bool gfx_glfw_errors_check(void);
+bool gfx_glfw_errors_log(const char *function, const char *file, int line);
 
 #endif

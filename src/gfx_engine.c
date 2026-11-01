@@ -1,5 +1,5 @@
-#include "../include/gfx/gfx.h"
 #include <assert.h>
+#include <gfx/engine.h>
 #include <stdio.h>
 
 ECS_COMPONENT_DECLARE(GFX_Engine);

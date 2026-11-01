@@ -1,4 +1,4 @@
-#include "../include/gfx/gfx.h"
+#include <gfx/transform.h>
 
 ECS_COMPONENT_DECLARE(GFX_Transform);
 

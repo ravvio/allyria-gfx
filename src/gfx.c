@@ -1,9 +1,12 @@
 #include <assert.h>
 #include <stdio.h>
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_DS_IMPLEMENTATION
 
-#include "../include/gfx/gfx.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+#define STB_DS_IMPLEMENTATION
+#include <stb_ds.h>
+
+#include <gfx/engine.h>
 
 GFX_Error gfx_init(const GFX_ProjectSettings *settings, ecs_world_t *world) {
   // Start graphics GLFW

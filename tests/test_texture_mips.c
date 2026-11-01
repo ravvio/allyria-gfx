@@ -1,7 +1,7 @@
-// Checks the CPU mipmap generation of src/graphics/gfx_texture.c, no GPU needed
+// Checks the CPU mipmap generation, no GPU needed
 
 #undef NDEBUG
-#include "../include/gfx/graphics/gfx_wgpu.h"
+#include "gfx_internal.h"
 #include <assert.h>
 #include <stdio.h>
 

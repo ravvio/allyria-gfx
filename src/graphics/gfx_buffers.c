@@ -1,7 +1,8 @@
 // Methods to create and draw WebGPU vertex and index buffers
 
-#include "../../include/gfx/graphics/gfx_wgpu.h"
+#include "gfx_internal.h"
 #include <assert.h>
+#include <gfx/render.h>
 
 // Create a GPU buffer and upload data to it if not NULL
 static WGPUBuffer _gfx_buffer_create(WGPUBufferUsage usage, uint32_t size,

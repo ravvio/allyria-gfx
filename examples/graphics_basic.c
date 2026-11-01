@@ -1,4 +1,4 @@
-#include "../include/gfx/graphics/gfx_graphics.h"
+#include <gfx/gfx.h>
 
 int main(void) {
   if (gfx_graphics_init() != GFX_ERR_OK) {
@@ -8,7 +8,7 @@ int main(void) {
 
   GFX_Window *win = gfx_window_init(800, 600, "Basic Example");
 
-  GFX_Color_RGBA color = {1.0, 0.3, 0.4, 1.0};
+  GFX_ColorRGBA color = {1.0, 0.3, 0.4, 1.0};
   gfx_color_buffer_set_clear(color);
 
   while (!gfx_window_should_close(win)) {

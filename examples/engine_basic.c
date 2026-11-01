@@ -1,8 +1,8 @@
-#include "../include/gfx/gfx.h"
+#include <gfx/gfx.h>
 #include <stdio.h>
 
 int main(void) {
-  enum GFX_Graphics_Feature graphics_features[] = {
+  enum GFX_GraphicsFeature graphics_features[] = {
       GFX_GRAPHICS_FEATURE_DEPTH_TESTING,
       GFX_GRAPHICS_FEATURE_CULL_BACK,
   };

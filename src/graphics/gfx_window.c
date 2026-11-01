@@ -1,4 +1,6 @@
-#include "../../include/gfx/graphics/gfx_wgpu.h"
+#include "gfx_internal.h"
+#include <gfx/graphics.h>
+#include <gfx/window.h>
 #include <glfw3webgpu.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -165,18 +167,18 @@ void gfx_graphics_terminate() {
 }
 
 // Enable the given graphics feature
-void gfx_graphics_enable(enum GFX_Graphics_Feature feature) {
+void gfx_graphics_enable(enum GFX_GraphicsFeature feature) {
   _gfx.features |= 1u << feature;
 }
 
 // *** WINDOW ***
 
 // (Re)configure the surface to the framebuffer size, fails when minimized
-static GFX_Boolean _gfx_window_configure(_GFX_Window *window) {
+static bool _gfx_window_configure(_GFX_Window *window) {
   int w, h;
   GLFWCall(glfwGetFramebufferSize(window->glfw, &w, &h));
   if (w == 0 || h == 0) {
-    return GFX_FALSE;
+    return false;
   }
 
   WGPUSurfaceConfiguration config = WGPU_SURFACE_CONFIGURATION_INIT;
@@ -200,7 +202,7 @@ static GFX_Boolean _gfx_window_configure(_GFX_Window *window) {
 
   window->width = w;
   window->height = h;
-  return GFX_TRUE;
+  return true;
 }
 
 GFX_Window *gfx_window_init(int w, int h, const char *window_name) {
@@ -277,7 +279,7 @@ void gfx_window_events_poll() { GLFWCall(glfwPollEvents()); }
 // *** FRAME ***
 
 // Set the color the frame is cleared with
-void gfx_color_buffer_set_clear(const GFX_Color_RGBA color) {
+void gfx_color_buffer_set_clear(const GFX_ColorRGBA color) {
   _gfx.clear_color = (WGPUColor){color[0], color[1], color[2], color[3]};
 }
 

@@ -1,4 +1,4 @@
-#include "../../include/gfx/gfx.h"
+#include <gfx/engine.h>
 
 ECS_COMPONENT_DECLARE(GFX_Surface);
 

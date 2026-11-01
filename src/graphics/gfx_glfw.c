@@ -1,4 +1,4 @@
-#include "../../include/gfx/graphics/gfx_wgpu.h"
+#include "gfx_internal.h"
 #include <stdio.h>
 
 void gfx_glfw_errors_clear() {
@@ -6,24 +6,24 @@ void gfx_glfw_errors_clear() {
   }
 }
 
-int gfx_glfw_errors_check() {
-  int ok = GFX_TRUE;
+bool gfx_glfw_errors_check() {
+  bool ok = true;
   for (int err = glfwGetError(NULL); err != GLFW_NO_ERROR;
        err = glfwGetError(NULL)) {
     fprintf(stderr, "[e] GLFW Error %d", err);
-    ok = -1;
+    ok = false;
   }
   return ok;
 }
 
-int gfx_glfw_errors_log(const char *function, const char *file, int line) {
-  int ok = GFX_TRUE;
+bool gfx_glfw_errors_log(const char *function, const char *file, int line) {
+  bool ok = true;
   const char *desc;
   for (int err = glfwGetError(&desc); err != GLFW_NO_ERROR;
        err = glfwGetError(NULL)) {
     fprintf(stderr, "[e] GLFW Error %d: %s\n| %s\n| at %s:%d\n", err, desc,
             function, file, line);
-    ok = -1;
+    ok = false;
   }
   return ok;
 }

@@ -1,30 +1,47 @@
 # AGENTS.md
 
-Small C99 game engine: **flecs** (ECS) + **WebGPU** (Dawn natively, emdawnwebgpu in the browser) + **GLFW** + **cglm** + **stb_image / stb_ds**.
+C23 game engine **library** (`gfx` target): **flecs** (ECS) + **WebGPU** (Dawn natively, emdawnwebgpu in the browser) + **GLFW** + **cglm** + **stb_image / stb_ds**.
 
 ## Build & run
 
 ```sh
-cmake -B build                 # Debug by default; fetches glfw, cglm, Dawn, glfw3webgpu
+cmake -B build                 # Debug by default; fetches GLFW, Dawn, glfw3webgpu
 cmake --build build --parallel
 ctest --test-dir build
-cd build/Debug/<arch> && ./engine_sprites   # <arch> = arm64 / x86_64
+cd build/examples && ./engine_sprites
 ```
 
-- Browser build: `emcmake cmake -B build/web` then `cmake --build build/web --parallel`. Output is `build/web/Debug/x86/*.html`; serve it over HTTP (see `README.md`). Emscripten needs Python 3.10+: set `EMSDK_PYTHON` if `python3` is older.
-- Examples must be run from `build/Debug/<arch>/`: asset paths are relative (`./assets/...`) and `assets/` is copied there at **configure** time. Re-run `cmake -B build` after adding/changing assets or shaders.
+- Browser build: `emcmake cmake -B build/web` then `cmake --build build/web --parallel`. Output is `build/web/examples/*.html`; serve it over HTTP (see `README.md`). Emscripten needs Python 3.10+: set `EMSDK_PYTHON` if `python3` is older.
+- The root `CMakeLists.txt` builds only the library. Examples (`GFX_BUILD_EXAMPLES`) and tests (`GFX_BUILD_TESTS`) default to on only when this is the top-level project, so a game can `add_subdirectory` / `FetchContent` the engine without them.
 - GPU-free logic has CTest checks in `tests/`. Add one when you write non-trivial logic that runs without a device.
-- Everything else is verified by building and running the affected examples (`examples/*.c`, one executable each, registered with `add_exe()` in `CMakeLists.txt`). WebGPU errors print as `[e] WebGPU error`.
+- Everything else is verified by building and running the affected examples (`examples/*.c`, one executable each, registered with `add_example()` in `examples/CMakeLists.txt`). WebGPU errors print as `[e] WebGPU error`.
 - New `.c` files in `src/` must be added to `GFXSOURCES` in `CMakeLists.txt`.
+
+## The library and its users
+
+`examples/` is built exactly like a game using the engine. Keep it that way: if an example needs something extra to build or run, the library is missing it.
+
+- **A consumer only does `target_link_libraries(game PRIVATE gfx)` and `#include <gfx/...>`.** Everything else comes from the `gfx` target's usage requirements:
+  - the PUBLIC include dir `include/` (only `gfx/` lives there);
+  - PUBLIC `webgpu`, `flecs` and `cglm`, each bringing its own include dir. stb is PRIVATE: it never appears in public headers;
+  - the Emscripten compile and link flags.
+- **The library ships no runtime files.** Shaders the engine owns live next to their code (`src/sprite/sprite.wgsl`) and are compiled in with C23 `#embed`. Don't make the engine load files from the app's working directory.
+- **Assets belong to the app.** Each consumer ships its own (`examples/assets/` is copied next to the examples and packaged for the browser by `examples/CMakeLists.txt`).
+- **Use `CMAKE_CURRENT_SOURCE_DIR` / `CMAKE_CURRENT_BINARY_DIR`** in the library's CMake, never `CMAKE_SOURCE_DIR` / `CMAKE_BINARY_DIR`: those point at the consumer's project when the engine is a subdirectory. Settings that affect the whole build (build type, `compile_commands.json`) only apply when top-level.
 
 ## Layout
 
 | Path | What |
 |---|---|
-| `include/gfx/gfx.h` | Engine public API: settings, `gfx_run`, ECS components (Transform, Camera, Surface, Uniforms, Engine), render phases |
-| `include/gfx/gfx_common.h` | Includes every third-party header, `GFX_Error`, `GFX_Boolean` |
-| `include/gfx/graphics/gfx_graphics.h` | Low-level graphics API: window, frame, buffers, shaders, pipelines, uniforms, textures, materials, geometry |
-| `include/gfx/graphics/gfx_wgpu.h` | Internal backend header: GLFW, shared WebGPU state (`_gfx`), `GLFWCall`, internal init functions |
+| `include/gfx/gfx.h` | Includes every feature header, what the examples use |
+| `include/gfx/core.h` | `GFX_Error`, color types, cglm (with `CGLM_FORCE_DEPTH_ZERO_TO_ONE`) |
+| `include/gfx/graphics.h` | Device init/terminate, graphics features |
+| `include/gfx/window.h` | Window, frame begin/end, clear color |
+| `include/gfx/render.h` | Buffers, vertex layout, shaders, pipelines, view-projection/model uniforms, draws, 2D/3D geometry |
+| `include/gfx/texture.h`, `material.h` | Textures with samplers; material layouts and materials |
+| `include/gfx/engine.h` | Settings, `gfx_init`/`gfx_terminate`/`gfx_run`, surface, render phases, `GFX_Uniforms`, `GFX_Engine` |
+| `include/gfx/transform.h`, `camera.h`, `sprite.h` | ECS modules |
+| `src/gfx_internal.h` | Private to the library: shared WebGPU state (`_gfx`), GLFW, `GLFWCall`, internal init functions |
 | `src/graphics/gfx_window.c` | WebGPU instance/adapter/device, window + surface + depth buffer, frame begin/end |
 | `src/graphics/gfx_buffers.c` | Vertex/index buffers, vertex layout, draw calls |
 | `src/graphics/gfx_shader.c` | WGSL shader modules, render pipelines |
@@ -33,11 +50,12 @@ cd build/Debug/<arch> && ./engine_sprites   # <arch> = arm64 / x86_64
 | `src/graphics/gfx_material.c` | Material layouts (defined by the caller), materials, white fallback texture |
 | `src/graphics/gfx_geometry2d.c`, `gfx_geometry3d.c` | Meshes (`GFX_Vertex2D` / `GFX_Vertex3D`), quad and cuboid shapes, their vertex layouts |
 | `src/renderer/` | Render phases & frame systems, surface (window + DPI) |
-| `src/sprite/gfx_sprite.c` | Instanced sprites: query, sort by (layer, texture), one instance upload, one draw per texture run |
+| `src/sprite/gfx_sprite.c`, `sprite.wgsl` | Instanced sprites: query, sort by (layer, texture), one instance upload, one draw per texture run. The shader is embedded with `#embed` |
 | `src/camera/`, `src/sprite/`, `src/gfx_*.c` | flecs modules |
-| `assets/shaders/` | WGSL, one file per pipeline with `vs_main` / `fs_main` |
+| `examples/` | Example programs and their own `CMakeLists.txt`, built like a game would build |
+| `examples/assets/` | The examples' shaders (WGSL, `vs_main` / `fs_main`) and textures |
 | `tests/` | CTest checks for GPU-free logic |
-| `include/{cglm,flecs}`, `include/stb_*.h` | Vendored third-party code — don't edit |
+| `vendor/{flecs,cglm,stb}` | Vendored third-party code, one CMake target each (`flecs`, `cglm`, `stb`) — don't edit |
 
 ## Conventions
 
@@ -45,7 +63,8 @@ cd build/Debug/<arch> && ./engine_sprites   # <arch> = arm64 / x86_64
 - flecs modules: `void Gfx<Name>Import(ecs_world_t *)` using `ECS_MODULE` + `ecs_set_name_prefix(world, "Gfx")`; imported with `ECS_IMPORT(world, Gfx<Name>)`.
 - Components: `extern ECS_COMPONENT_DECLARE(T)` in the header, `ECS_COMPONENT_DECLARE(T)` in the `.c`, `ECS_COMPONENT_DEFINE` in the import function. Components owning GPU/heap resources get `ECS_DTOR` + `ECS_MOVE` hooks (see `gfx_surface.c`, `gfx_sprite.c`).
 - System callbacks are named `_gfx_sys_<what>`. Systems must not keep pointers to component storage across phases (flecs can move it): copy what they need, as the sprite renderer does.
-- Includes use relative paths (`#include "../../include/gfx/gfx.h"`), not include dirs.
+- Includes: consumers (examples) use `#include <gfx/...>`. Inside the library, sources and headers include each other with relative paths (`"../../include/gfx/gfx.h"`, `"../gfx_common.h"`).
+- C23, standard mode (`C_EXTENSIONS OFF`): no compiler extensions, so the code also builds on Emscripten's libc.
 - The backend boundary is `gfx_graphics.h` + `src/graphics/`. Modules above it (`renderer/`, `sprite/`) only use that API, never `wgpu*` calls directly.
 - Resource structs are returned by value from `*_create` / `*_load` and released with `*_destroy(const T *)`.
 - `*_bind` / `gfx_draw_*` record into the current frame's render pass. Call them between `gfx_frame_begin` and `gfx_frame_end`; they do nothing when the frame was skipped.
@@ -70,12 +89,15 @@ cd build/Debug/<arch> && ./engine_sprites   # <arch> = arm64 / x86_64
 ## Frame / ECS flow
 
 `gfx_run(world)` calls `ecs_progress()` every frame (a loop natively, `requestAnimationFrame` in the browser), which runs:
-1. `EcsPreUpdate`: quit if the window should close.
-2. `EcsOnUpdate` / `EcsPostUpdate`: gameplay, sync `GFX_Transform` → camera model.
-3. Render phases (defined in `gfx_renderer.c`, chained after `EcsOnStore`):
-   `GfxPreRender` (surface sync, camera matrix into `GFX_Uniforms`, `gfx_frame_set_view_projection`) → `GfxStartRender` (`gfx_frame_begin`: acquire surface texture, begin cleared render pass) → `GfxRenderObjects` (draw, e.g. sprites) → `GfxRenderGizmos` → `GfxRenderGUI` → `GfxEndRender` (`gfx_frame_end`: upload the model arena, submit, present) → `GfxPostRender` (poll events).
+1. `EcsOnLoad`: sync `GFX_Surface` with the window, so its size is current for the whole frame (gameplay included).
+2. `EcsPreUpdate`: quit if the window should close.
+3. `EcsOnUpdate` / `EcsPostUpdate`: gameplay.
+4. Render phases (defined in `gfx_renderer.c`, chained after `EcsOnStore`):
+   `GfxPreRender` (camera systems: model from `GFX_Transform`, view from `GFX_CameraPixel`, projection from `GFX_CameraOrtho` + surface aspect + scaling mode) → `GfxStartRender` (main camera's projection × view × model into `GFX_Uniforms`, `gfx_frame_set_view_projection`, `gfx_frame_begin`: acquire surface texture, begin cleared render pass) → `GfxRenderObjects` (draw, e.g. sprites) → `GfxRenderGizmos` → `GfxRenderGUI` → `GfxEndRender` (`gfx_frame_end`: upload the model arena, submit, present) → `GfxPostRender` (poll events).
 
 `GFX_Engine` is a singleton holding the surface, uniforms and main camera entity ids.
+
+Systems that depend on each other go in different phases, not in declaration order within one phase: flecs doesn't guarantee that order.
 
 Every frame's render pass has a `Depth24Plus` depth attachment, owned by the window and recreated on resize. Every pipeline therefore declares a depth state; without `GFX_GRAPHICS_FEATURE_DEPTH_TESTING` it uses compare `Always` with writes off.
 
@@ -90,14 +112,14 @@ Native is the default. Configuring with `emcmake cmake` builds for the browser (
   - **Browser:** Dawn's `emdawnwebgpu` remote port from the same release, also pinned by hash.
 - Only use the standard `webgpu.h` API. Code for one target goes behind `#ifdef __EMSCRIPTEN__` / `#ifndef __EMSCRIPTEN__`, kept inside `src/graphics/` or `gfx_run`.
 - Engine code must work in the browser:
-  - **No blocking main loop.** Use `gfx_run`. The `graphics_*` examples have their own loop, so only `engine_*` examples are built for the browser.
+  - **No blocking main loop.** Use `gfx_run`. The `graphics_*` examples have their own loop, so only the `engine_*` examples are built for the browser.
   - **Adapter/device requests are async.** Init waits on them with `wgpuInstanceWaitAny` (instance feature `TimedWaitAny`), which needs `-sASYNCIFY` in the browser. Don't add other blocking waits.
   - **No `wgpuSurfacePresent` / `wgpuInstanceProcessEvents`** in the browser (it presents on its own).
-- Browser link setup (`CMakeLists.txt`):
-  - GLFW comes from Emscripten's `contrib.glfw3` port; the built-in `-sUSE_GLFW=3` is GLFW 3.2 and lacks `glfwGetError`.
-  - Executables link with `em++` (emdawnwebgpu is C++).
-  - flecs needs `-sSTACK_SIZE=1mb` (it overflows the default 64 KB in `ecs_init`).
-  - Assets are packaged with `--preload-file` at `/assets`, so `./assets/...` paths work unchanged.
+- Browser flags live on the library's targets, so consumers get them by linking `gfx`:
+  - `glfw`: Emscripten's `contrib.glfw3` port; the built-in `-sUSE_GLFW=3` is GLFW 3.2 and lacks `glfwGetError`.
+  - `webgpu`: the emdawnwebgpu port, `-sASYNCIFY`, and `-sDEFAULT_TO_CXX` (emdawnwebgpu needs the C++ runtime).
+  - `flecs`: `-sSTACK_SIZE=1mb` (it overflows the default 64 KB in `ecs_init`) and `-sALLOW_MEMORY_GROWTH=1`.
+- Apps package their own assets with `--preload-file <dir>@/assets`, so `./assets/...` paths work unchanged. If several flags repeat, use `SHELL:` in `target_link_options` or CMake drops the duplicates.
 - **Threads:** the engine must work with any flecs thread count but must not require threads. Games can call `ecs_set_threads` (native only).
   - Systems that touch WebGPU or GLFW run on the main thread: never mark them `multi_threaded`.
   - Browser builds are single-threaded; threads there would need `-pthread` plus COOP/COEP headers.
@@ -105,10 +127,11 @@ Native is the default. Configuring with `emcmake cmake` builds for the browser (
 ## Gotchas
 
 - flecs is built from the vendored `include/flecs/flecs.c`; header and source must stay the same version (a mismatch crashes at startup). Upgrade both files together.
-- cglm is used from the vendored `include/cglm` headers; the FetchContent cglm `master` is only linked, so it can drift.
+- cglm is header-only and used from the vendored `include/cglm`.
 - `STB_IMAGE_IMPLEMENTATION` / `STB_DS_IMPLEMENTATION` are defined only in `src/gfx.c`.
 - Warnings (`-Wall -Wextra -pedantic`) are only enabled on example targets, not on the `gfx` library.
-- Dawn is a C++ static library, so the project enables `CXX` for linking. Engine code stays C99.
+- Dawn is a C++ static library, so the project enables `CXX` for linking. Engine code stays C23.
+- `#embed` needs Clang 19+ or GCC 15+. MSVC doesn't support it, so the engine can't be built with MSVC (clang-cl works).
 - Only Dawn's Release archives are downloaded: Windows Debug builds would need the Debug archive (MSVC runtime mismatch).
 - WebGPU has no `generateMipmap`.
   - **Linear textures** get a full mip chain built on the CPU at creation (2×2 box filter). Averaging non-premultiplied alpha can darken transparent edges in the smaller mips.

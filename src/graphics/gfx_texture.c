@@ -1,4 +1,6 @@
-#include "../../include/gfx/graphics/gfx_wgpu.h"
+#include "gfx_internal.h"
+#include <gfx/texture.h>
+#include <stb_image.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -13,7 +15,7 @@ uint32_t gfx_texture_mip_count(int width, int height) {
   return count;
 }
 
-// Halve RGBA8 pixels with a 2x2 box filter (see SOURCES.md, "Mipmaps").
+// Halve RGBA8 pixels with a 2x2 box filter.
 // dst is max(1, w/2) x max(1, h/2), odd last rows/columns are dropped and
 // 1 pixel wide sources are clamped.
 void gfx_texture_downsample(const uint8_t *src, int src_w, int src_h,

@@ -1,24 +1,19 @@
 cmake_minimum_required(VERSION 3.22)
-set(NAME allyria-gfx)
-project(${NAME} LANGUAGES C CXX) # CXX: Dawn is a C++ library
+project(allyria-gfx LANGUAGES C CXX) # CXX: Dawn is a C++ library
 
 include(FetchContent)
-set(FETCHCONTENT_QUIET FALSE)
 
-# compile_commands.json for editors (clangd)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+option(GFX_BUILD_EXAMPLES "Build the examples" ${PROJECT_IS_TOP_LEVEL})
+option(GFX_BUILD_TESTS "Build the tests" ${PROJECT_IS_TOP_LEVEL})
 
-# Build type
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Debug)
+if(PROJECT_IS_TOP_LEVEL)
+  set(FETCHCONTENT_QUIET FALSE)
+  # compile_commands.json for editors (clangd)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+  if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+  endif()
 endif()
-
-# Architecture string.
-set(ARCH "${CMAKE_SYSTEM_PROCESSOR}" CACHE STRING "Override CPU architecture")
-string(REGEX REPLACE "amd64" "x86_64" KERNEL_ARCH "${ARCH}")
-
-# Set directory locations (allowing us to move directories easily)
-set(BUILD_DIR ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/${ARCH})
 
 # Dawn release used for WebGPU, natively (prebuilt) and in the browser
 # (emdawnwebgpu port), from github.com/google/dawn/releases
@@ -35,15 +30,17 @@ if(EMSCRIPTEN)
   target_compile_options(glfw INTERFACE --use-port=contrib.glfw3)
   target_link_options(glfw INTERFACE --use-port=contrib.glfw3)
 
-  set(EMDAWNWEBGPU_PORT ${CMAKE_BINARY_DIR}/emdawnwebgpu-${DAWN_TAG}.remoteport.py)
+  set(EMDAWNWEBGPU_PORT ${CMAKE_CURRENT_BINARY_DIR}/emdawnwebgpu-${DAWN_TAG}.remoteport.py)
   file(DOWNLOAD
       "https://github.com/google/dawn/releases/download/${DAWN_TAG}/emdawnwebgpu-${DAWN_TAG}.remoteport.py"
       ${EMDAWNWEBGPU_PORT}
       EXPECTED_HASH SHA256=6ae253a111e30c556f3ff95be9c26617a24e7cfc708752a79b8a33ef09e1ad1b
   )
   target_compile_options(webgpu INTERFACE --use-port=${EMDAWNWEBGPU_PORT})
-  # ASYNCIFY lets init wait on the adapter/device requests (wgpuInstanceWaitAny)
-  target_link_options(webgpu INTERFACE --use-port=${EMDAWNWEBGPU_PORT} -sASYNCIFY)
+  # ASYNCIFY lets init wait on the adapter/device requests (wgpuInstanceWaitAny),
+  # DEFAULT_TO_CXX links with the C++ runtime emdawnwebgpu needs
+  target_link_options(webgpu INTERFACE --use-port=${EMDAWNWEBGPU_PORT}
+                      -sASYNCIFY -sDEFAULT_TO_CXX)
   target_compile_definitions(webgpu INTERFACE WEBGPU_BACKEND_EMDAWNWEBGPU)
 else()
 
@@ -58,7 +55,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glfw)
 
 # Add Dawn (WebGPU) prebuilt
-# ponytail: Release archives only, Windows Debug builds need Dawn's Debug archive (MSVC runtime)
 if(APPLE AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
   set(DAWN_PLATFORM macos-15-intel)
   set(DAWN_SHA256 a24900577a4ba760717af0f745d80799a0d2fabaca488813e6ba79cf42bce4a5)
@@ -95,23 +91,22 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glfw3webgpu)
 
-# Add cglm
-FetchContent_Declare(
-    cglm
-    GIT_REPOSITORY "https://github.com/recp/cglm"
-    GIT_TAG "master"
-    GIT_PROGRESS TRUE
-    GIT_SHALLOW TRUE
-)
-FetchContent_MakeAvailable(cglm)
+# Vendored libraries, each exposes only its own headers
 
-# Add flecs (vendored, so the library matches include/flecs/flecs.h)
-add_library(flecs ./include/flecs/flecs.c)
+# flecs, header and source from the same release
+add_library(flecs ${CMAKE_CURRENT_SOURCE_DIR}/vendor/flecs/flecs.c)
+target_include_directories(flecs PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/vendor/flecs)
 if(EMSCRIPTEN)
-  # flecs overflows Emscripten's default 64KB stack in ecs_init, its build
-  # docs ask for 1MB (see SOURCES.md)
-  target_link_options(flecs INTERFACE -sSTACK_SIZE=1mb)
+  # flecs build docs for Emscripten: a 1MB stack (ecs_init overflows the
+  # default 64KB) and a growable heap
+  target_link_options(flecs INTERFACE -sSTACK_SIZE=1mb -sALLOW_MEMORY_GROWTH=1)
 endif()
+
+# cglm and stb, header only
+add_library(cglm INTERFACE)
+target_include_directories(cglm INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/vendor/cglm/include)
+add_library(stb INTERFACE)
+target_include_directories(stb INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb)
 
 # Create the GFX library
 set(GFXSOURCES
@@ -138,79 +133,27 @@ set(GFXSOURCES
     ./src/gfx_transform.c
 )
 add_library(gfx ${GFXSOURCES})
-# webgpu.h is part of the public graphics API
-target_link_libraries(gfx PUBLIC webgpu PRIVATE glfw glfw3webgpu cglm_headers flecs)
 
-# Copy full directories
-macro(copy_resource_dirs dirs)
-    foreach(dir ${dirs})
-        # Replace / at the end of the path (copy dir content VS copy dir)
-        string(REGEX REPLACE "/+$" "" dirclean "${dir}")
-        message(STATUS "Copying resource ${dirclean} to ${BUILD_DIR}")
-        file(COPY ${dirclean} DESTINATION ${BUILD_DIR})
-    endforeach()
-endmacro()
-copy_resource_dirs("${CMAKE_SOURCE_DIR}/assets")
+target_compile_features(gfx PRIVATE c_std_23)
+set_target_properties(gfx PROPERTIES C_EXTENSIONS OFF)
 
-# Add examples
-function(add_exe EXE_NAME)
-    set(EXE_SOURCE "examples/${EXE_NAME}.c")
-    set(EXE_SOURCES ${COMMON_HEADERS} ${COMMON_SOURCES} ${EXE_SOURCE})
+# Consumers include <gfx/...>, webgpu.h, flecs and cglm are part of the public
+# API
+target_include_directories(gfx
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_link_libraries(gfx PUBLIC webgpu flecs cglm PRIVATE glfw glfw3webgpu stb)
 
-    add_executable(${EXE_NAME} ${EXE_SOURCE})
-    set_target_properties(${EXE_NAME} PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY ${BUILD_DIR}
-        C_STANDARD 99
-        C_STANDARD_REQUIRED ON
-        C_EXTENSIONS OFF
-        INTRAPROCEDURAL_OPTIMIZATION ON
-    )
-
-    # Target compilation options
-    if(MSVC)
-        target_compile_options(${EXE_NAME} PRIVATE /W4 /D_CRT_SECURE_NO_WARNINGS)
-        target_compile_options(${EXE_NAME} PRIVATE /fp:fast)
-    else()
-        target_compile_options(${EXE_NAME} PRIVATE -Wall -Wextra -pedantic)
-        target_compile_options(${EXE_NAME} PRIVATE -ffast-math)
-    endif()
-
-    # Include directories
-    target_include_directories(${EXE_NAME}
-        PRIVATE
-        ${PROJECT_SOURCE_DIR}/src
-    )
-
-    # And libraries
-    target_link_libraries(${EXE_NAME} PRIVATE cglm_headers flecs glfw gfx)
-
-    # Browser: an .html page with the assets packaged at /assets
-    if(EMSCRIPTEN)
-        # emdawnwebgpu is C++, it links with em++
-        set_target_properties(${EXE_NAME} PROPERTIES SUFFIX ".html" LINKER_LANGUAGE CXX)
-        target_link_options(${EXE_NAME} PRIVATE
-            --preload-file ${CMAKE_SOURCE_DIR}/assets@/assets
-            -sALLOW_MEMORY_GROWTH=1
-        )
-    endif()
-endfunction()
-
-# The graphics_* examples run their own blocking loop, native only
-if(NOT EMSCRIPTEN)
-    add_exe(graphics_basic)
-    add_exe(graphics_triangle)
-    add_exe(graphics_geometry2d)
-    add_exe(graphics_geometry3d)
-    add_exe(graphics_material_std_unlit)
+if(GFX_BUILD_EXAMPLES)
+  add_subdirectory(examples)
 endif()
 
-add_exe(engine_basic)
-add_exe(engine_sprites)
-
 # Tests, run with: ctest --test-dir build
-if(NOT EMSCRIPTEN)
-    enable_testing()
-    add_executable(test_texture_mips tests/test_texture_mips.c)
-    target_link_libraries(test_texture_mips PRIVATE glfw gfx)
-    add_test(NAME texture_mips COMMAND test_texture_mips)
+if(GFX_BUILD_TESTS AND NOT EMSCRIPTEN)
+  enable_testing()
+  add_executable(test_texture_mips tests/test_texture_mips.c)
+  # Tests check library internals
+  target_include_directories(test_texture_mips PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+  target_link_libraries(test_texture_mips PRIVATE glfw gfx)
+  add_test(NAME texture_mips COMMAND test_texture_mips)
 endif()

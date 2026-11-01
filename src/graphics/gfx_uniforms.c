@@ -1,9 +1,10 @@
-// Engine uniforms (see SOURCES.md, "Uniforms and bind groups"):
+// Engine uniforms:
 // - group 0, frame: view-projection matrix, written once per frame
 // - group 1, object: model matrix per draw, stored in a per-frame arena of
 //   256 byte slots, bound with a dynamic offset and uploaded at frame end
 
-#include "../../include/gfx/graphics/gfx_wgpu.h"
+#include "gfx_internal.h"
+#include <gfx/render.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

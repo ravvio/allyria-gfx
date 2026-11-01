@@ -1,4 +1,4 @@
-#include "../../include/gfx/graphics/gfx_wgpu.h"
+#include <gfx/render.h>
 
 const GFX_VertexLayout *gfx_geometry2d_layout(void) {
   static GFX_VertexLayout layout = {0};

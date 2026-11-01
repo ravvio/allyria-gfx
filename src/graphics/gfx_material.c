@@ -1,8 +1,9 @@
 // Materials, bind group 2 laid out by a GFX_MaterialLayout:
 // binding 0 uniform, then each texture i at 1+2i and its sampler at 2+2i
 
-#include "../../include/gfx/graphics/gfx_wgpu.h"
+#include "gfx_internal.h"
 #include <assert.h>
+#include <gfx/material.h>
 #include <string.h>
 
 // Used for missing textures

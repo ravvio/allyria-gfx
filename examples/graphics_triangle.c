@@ -1,4 +1,4 @@
-#include "../include/gfx/graphics/gfx_graphics.h"
+#include <gfx/gfx.h>
 #include <stdio.h>
 
 int main(void) {

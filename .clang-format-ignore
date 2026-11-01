@@ -1,4 +1,2 @@
 # Vendored third-party code (clang-format 18+ reads this file)
-include/cglm/**
-include/flecs/**
-include/stb_*.h
+vendor/**
