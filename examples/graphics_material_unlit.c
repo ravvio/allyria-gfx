@@ -1,10 +1,5 @@
 #include <gfx/gfx.h>
 
-// Uniform of the unlit material
-typedef struct {
-  vec4 albedo;
-} UnlitUniform;
-
 int main(void) {
   if (gfx_graphics_init() != GFX_ERR_OK) {
     gfx_graphics_terminate();
@@ -41,35 +36,29 @@ int main(void) {
   glm_mat4_mul(transform_projection, transform_view, view_projection);
   vec4 full_window = {0.0f, 0.0f, 1.0f, 1.0f};
 
-  // Unlit material: albedo color * albedo texture
-  GFX_MaterialLayout unlit =
-      gfx_material_layout_create(sizeof(UnlitUniform), 1);
-  UnlitUniform uniform = {.albedo = {0.5, 0.5, 0.0, 1.0}};
+  GFX_UnlitUniform uniform = {.albedo = {0.5, 0.5, 0.0, 1.0}};
   const GFX_Texture2D *textures[] = {&tex};
-  GFX_Material material = gfx_material_create(&unlit, &uniform, textures);
-
-  GFX_Shader shader =
-      gfx_shader_create("./assets/shaders/mesh3d_std_unlit.wgsl");
+  GFX_Material material =
+      gfx_material_create(gfx_shader_unlit(), &uniform, textures);
   GFX_Pipeline pipeline =
-      gfx_pipeline_create(&shader, gfx_geometry3d_layout(), &unlit);
+      gfx_pipeline_create(material.shader, gfx_geometry3d_layout());
 
   while (!gfx_window_should_close(win)) {
-    gfx_frame_begin(win);
-    gfx_frame_view_begin(NULL, full_window, view_projection);
+    gfx_frame_begin();
+    gfx_frame_window_begin(win);
+    gfx_frame_view_begin(win, full_window, view_projection);
 
     gfx_pipeline_bind(&pipeline);
     gfx_material_bind(&material);
     gfx_draw_set_model(transform_model);
     gfx_geometry3d_draw(&geometry);
 
-    gfx_frame_end(win);
+    gfx_frame_end();
     gfx_window_events_poll();
   }
 
   gfx_pipeline_destroy(&pipeline);
-  gfx_shader_destroy(&shader);
   gfx_material_destroy(&material);
-  gfx_material_layout_destroy(&unlit);
   gfx_texture2d_destroy(&tex);
   gfx_geometry3d_destroy(&geometry);
   gfx_window_destroy(win);

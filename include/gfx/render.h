@@ -2,7 +2,8 @@
 #define GFX_RENDER_DECL
 
 #include <gfx/core.h>
-#include <gfx/material.h>
+#include <gfx/texture.h>
+#include <gfx/window.h>
 #include <webgpu/webgpu.h>
 
 // Vertex Buffer
@@ -46,31 +47,48 @@ typedef struct {
 
 void gfx_vertex_layout_push_f32(GFX_VertexLayout *layout, uint32_t count);
 
-// Shader, WGSL with entry points vs_main and fs_main
+// Shader, WGSL with entry points vert_main and frag_main. Its materials are
+// in @group(2), declared with uniform_size and texture_count (0 and 0 for
+// none):
+//   @binding(0)    uniform of uniform_size bytes (only if uniform_size > 0)
+//   @binding(1+2i) texture i, texture_2d<f32>
+//   @binding(2+2i) sampler of texture i
+// e.g. (sizeof(vec4), 1) matches
+//   @group(2) @binding(0) var<uniform> albedo: vec4f;
+//   @group(2) @binding(1) var albedo_tex: texture_2d<f32>;
+//   @group(2) @binding(2) var albedo_sampler: sampler;
+
+#define GFX_MATERIAL_MAX_TEXTURES 4
 
 typedef struct {
   // Shown in error messages, the file path for loaded shaders
   const char *label;
   WGPUShaderModule module;
+  uint32_t uniform_size;
+  uint32_t texture_count;
+  // NULL without materials
+  WGPUBindGroupLayout material_layout;
+  WGPUPipelineLayout pipeline_layout;
 } GFX_Shader;
 
 // Load a WGSL file
-GFX_Shader gfx_shader_create(const char *filepath);
+GFX_Shader gfx_shader_create(const char *filepath, uint32_t uniform_size,
+                             uint32_t texture_count);
 // WGSL source in memory (null terminated), label must outlive the shader
-GFX_Shader gfx_shader_create_wgsl(const char *label, const char *source);
+GFX_Shader gfx_shader_create_wgsl(const char *label, const char *source,
+                                  uint32_t uniform_size,
+                                  uint32_t texture_count);
 void gfx_shader_destroy(const GFX_Shader *shader);
 
-// Pipeline, shader + vertex layout + material layout (NULL for none) +
-// enabled graphics features. Create it after the window, it renders to the
-// window surface format.
+// Pipeline, shader + vertex layout + enabled graphics features. Create it
+// after the window, it renders to the window surface format.
 
 typedef struct {
   WGPURenderPipeline pipeline;
 } GFX_Pipeline;
 
 GFX_Pipeline gfx_pipeline_create(const GFX_Shader *shader,
-                                 const GFX_VertexLayout *layout,
-                                 const GFX_MaterialLayout *material);
+                                 const GFX_VertexLayout *layout);
 void gfx_pipeline_destroy(const GFX_Pipeline *pipeline);
 void gfx_pipeline_bind(const GFX_Pipeline *pipeline);
 
@@ -78,10 +96,12 @@ void gfx_pipeline_bind(const GFX_Pipeline *pipeline);
 //   @group(0) @binding(0) var<uniform> view_projection: mat4x4f;
 //   @group(1) @binding(0) var<uniform> model: mat4x4f;
 
-// Draw the next calls into rect of target with view_projection, NULL target
-// for the window
-bool gfx_frame_view_begin(GFX_RenderTexture *target, const vec4 rect,
+// Draw the next calls into rect of window with view_projection
+bool gfx_frame_view_begin(GFX_Window *window, const vec4 rect,
                           mat4 view_projection);
+// Draw the next calls into rect of texture with view_projection
+bool gfx_frame_view_begin_texture(GFX_RenderTexture *texture, const vec4 rect,
+                                  mat4 view_projection);
 // Model matrix of the next draws
 void gfx_draw_set_model(mat4 model);
 

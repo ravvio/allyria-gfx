@@ -15,21 +15,14 @@ static void check_pixels(float x, float y, float w, float h, uint32_t width,
   assert(out[0] == px && out[1] == py && out[2] == pw && out[3] == ph);
 }
 
-static void check_fit(enum GFX_CameraScalingMode mode, float aspect) {
-  float s = 2.0f;
+// The square projection stretched to aspect must equal expected
+static void check_fit(enum GFX_CameraScalingMode mode, float aspect,
+                      mat4 square, mat4 expected) {
   GFX_Camera camera = {
       .scaling_mode = mode,
       .view = GLM_MAT4_IDENTITY_INIT,
-      .model = GLM_MAT4_IDENTITY_INIT,
   };
-  glm_ortho(-s, s, -s, s, -100.0f, 100.0f, camera.projection);
-
-  mat4 expected;
-  if (mode == GFX_CAMERA_SCALING_MODE_FIT_HEIGHT) {
-    glm_ortho(-s * aspect, s * aspect, -s, s, -100.0f, 100.0f, expected);
-  } else {
-    glm_ortho(-s, s, -s / aspect, s / aspect, -100.0f, 100.0f, expected);
-  }
+  glm_mat4_copy(square, camera.projection);
 
   mat4 result;
   gfx_camera_view_projection(camera, aspect, result);
@@ -38,6 +31,30 @@ static void check_fit(enum GFX_CameraScalingMode mode, float aspect) {
       assert(fabsf(result[c][r] - expected[c][r]) < 1e-6f);
     }
   }
+}
+
+static void check_ortho(enum GFX_CameraScalingMode mode, float aspect) {
+  float s = 2.0f;
+  mat4 square, expected;
+  glm_ortho(-s, s, -s, s, -100.0f, 100.0f, square);
+  if (mode == GFX_CAMERA_SCALING_MODE_FIT_HEIGHT) {
+    glm_ortho(-s * aspect, s * aspect, -s, s, -100.0f, 100.0f, expected);
+  } else {
+    glm_ortho(-s, s, -s / aspect, s / aspect, -100.0f, 100.0f, expected);
+  }
+  check_fit(mode, aspect, square, expected);
+}
+
+static void check_perspective(enum GFX_CameraScalingMode mode, float aspect) {
+  float fov = 1.0f;
+  mat4 square, expected;
+  glm_perspective(fov, 1.0f, 0.1f, 100.0f, square);
+  // Fit width keeps fov horizontal, glm_perspective takes the vertical one
+  float fov_y = mode == GFX_CAMERA_SCALING_MODE_FIT_HEIGHT
+                    ? fov
+                    : 2.0f * atanf(tanf(fov / 2.0f) / aspect);
+  glm_perspective(fov_y, aspect, 0.1f, 100.0f, expected);
+  check_fit(mode, aspect, square, expected);
 }
 
 int main(void) {
@@ -54,10 +71,12 @@ int main(void) {
   // Empty
   check_pixels(0.2f, 0.2f, 0, 0.5f, 800, 600, 160, 120, 0, 300);
 
-  // The stretched square projection matches an ortho of that aspect
-  check_fit(GFX_CAMERA_SCALING_MODE_FIT_HEIGHT, 4.0f / 3.0f);
-  check_fit(GFX_CAMERA_SCALING_MODE_FIT_WIDTH, 4.0f / 3.0f);
-  check_fit(GFX_CAMERA_SCALING_MODE_FIT_HEIGHT, 0.5f);
+  // The stretched square projections match the ones built for that aspect
+  check_ortho(GFX_CAMERA_SCALING_MODE_FIT_HEIGHT, 4.0f / 3.0f);
+  check_ortho(GFX_CAMERA_SCALING_MODE_FIT_WIDTH, 4.0f / 3.0f);
+  check_ortho(GFX_CAMERA_SCALING_MODE_FIT_HEIGHT, 0.5f);
+  check_perspective(GFX_CAMERA_SCALING_MODE_FIT_HEIGHT, 4.0f / 3.0f);
+  check_perspective(GFX_CAMERA_SCALING_MODE_FIT_WIDTH, 4.0f / 3.0f);
 
   printf("viewport ok\n");
   return 0;

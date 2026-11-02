@@ -16,16 +16,14 @@ static void pan(ecs_iter_t *it) {
   }
 }
 
-static ecs_entity_t camera_create(ecs_world_t *world, float ratio) {
+static ecs_entity_t camera_create(ecs_world_t *world, float size) {
   ecs_entity_t cam = ecs_new(world);
   ecs_set(world, cam, GFX_Camera,
           {
               .projection = GLM_MAT4_IDENTITY_INIT,
               .view = GLM_MAT4_IDENTITY_INIT,
-              .model = GLM_MAT4_IDENTITY_INIT,
           });
-  ecs_set(world, cam, GFX_CameraOrtho, {.size = 1.0});
-  ecs_set(world, cam, GFX_CameraPixel, {.ratio = ratio});
+  ecs_set(world, cam, GFX_CameraOrtho, {.size = size});
   ecs_set(world, cam, GFX_Transform, GLM_MAT4_IDENTITY_INIT);
   return cam;
 }
@@ -57,9 +55,9 @@ int main(void) {
     gfx_terminate(world);
     return 1;
   }
-  ecs_singleton_set(
-      world, GFX_Surface,
-      {.title = "Engine Render Target", .width = 800, .height = 600});
+  ecs_entity_t window = ecs_new(world);
+  ecs_set(world, window, GFX_Surface,
+          {.title = "Engine Render Target", .width = 800, .height = 600});
 
   ECS_IMPORT(world, GfxTransform);
   ECS_IMPORT(world, GfxCamera);
@@ -77,7 +75,7 @@ int main(void) {
   ecs_add(world, scene_cam, Panning);
   ecs_entity_t scene_view = ecs_new(world);
   ecs_set(world, scene_view, GFX_Viewport,
-          {.camera = scene_cam, .rect = {0, 0, 1, 1}, .target = &screen});
+          {.camera = scene_cam, .texture = &screen, .rect = {0, 0, 1, 1}});
   ecs_set(world, ecs_new_w_pair(world, EcsChildOf, scene_view), GFX_SpriteBatch,
           {.tag = Scene});
 
@@ -85,7 +83,7 @@ int main(void) {
   ecs_entity_t window_cam = camera_create(world, 60.0f);
   ecs_entity_t window_view = ecs_new(world);
   ecs_set(world, window_view, GFX_Viewport,
-          {.camera = window_cam, .rect = {0, 0, 1, 1}});
+          {.camera = window_cam, .surface = window, .rect = {0, 0, 1, 1}});
   ecs_set(world, ecs_new_w_pair(world, EcsChildOf, window_view),
           GFX_SpriteBatch, {.tag = Screen});
   sprite_create(world, gfx_sprite_create(&screen.texture, 0, 0, 160, 120), 0,

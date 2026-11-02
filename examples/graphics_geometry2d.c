@@ -13,9 +13,8 @@ int main(void) {
   }
 
   GFX_Geometry2D geometry = gfx_geometry2d_shape_quad_create(1.0, 1.0);
-  GFX_Shader shader = gfx_shader_create("./assets/shaders/mesh2d.wgsl");
-  GFX_Pipeline pipeline =
-      gfx_pipeline_create(&shader, gfx_geometry2d_layout(), NULL);
+  GFX_Shader shader = gfx_shader_create("./assets/shaders/mesh2d.wgsl", 0, 0);
+  GFX_Pipeline pipeline = gfx_pipeline_create(&shader, gfx_geometry2d_layout());
 
   mat4 view_projection;
   glm_ortho_default(800.0f / 600.0f, view_projection);
@@ -31,8 +30,9 @@ int main(void) {
   }
 
   while (!gfx_window_should_close(win)) {
-    gfx_frame_begin(win);
-    gfx_frame_view_begin(NULL, full_window, view_projection);
+    gfx_frame_begin();
+    gfx_frame_window_begin(win);
+    gfx_frame_view_begin(win, full_window, view_projection);
 
     gfx_pipeline_bind(&pipeline);
     for (int i = 0; i < 3; i++) {
@@ -40,7 +40,7 @@ int main(void) {
       gfx_geometry2d_draw(&geometry);
     }
 
-    gfx_frame_end(win);
+    gfx_frame_end();
     gfx_window_events_poll();
   }
 

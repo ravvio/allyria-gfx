@@ -59,8 +59,7 @@ static const GFX_Material *_gfx_sprite_material(GFX_SpriteRenderer *sr,
   ptrdiff_t i = hmgeti(sr->materials, texture->view);
   if (i < 0) {
     const GFX_Texture2D *textures[] = {texture};
-    GFX_Material material =
-        gfx_material_create(&sr->material_layout, NULL, textures);
+    GFX_Material material = gfx_material_create(sr->shader, NULL, textures);
     hmput(sr->materials, texture->view, material);
     i = hmgeti(sr->materials, texture->view);
   }
@@ -75,9 +74,9 @@ static void _gfx_sprite_renderer_destroy(GFX_SpriteRenderer *sr) {
   if (sr->pipeline.pipeline) {
     gfx_pipeline_destroy(&sr->pipeline);
   }
-  if (sr->shader.module) {
-    gfx_material_layout_destroy(&sr->material_layout);
-    gfx_shader_destroy(&sr->shader);
+  if (sr->shader) {
+    gfx_shader_destroy(sr->shader);
+    free(sr->shader);
   }
   // The query belongs to the world
   memset(sr, 0, sizeof(*sr));
@@ -173,8 +172,7 @@ static void _gfx_sprite_batch_draw(ecs_world_t *world, ecs_entity_t entity,
     for (int i = 0; i < 5; i++) {
       gfx_vertex_layout_push_f32(&layout, 4);
     }
-    sr->pipeline =
-        gfx_pipeline_create(&sr->shader, &layout, &sr->material_layout);
+    sr->pipeline = gfx_pipeline_create(sr->shader, &layout);
   }
 
   // One draw per run of sprites sharing a texture, instances keep the order
@@ -248,12 +246,12 @@ void GfxSpriteImport(ecs_world_t *world) {
                 });
 
   GFX_SpriteRenderer sr = {
-      .shader = gfx_shader_create_wgsl("sprite.wgsl", _gfx_sprite_wgsl),
-      // No uniform, one texture
-      .material_layout = gfx_material_layout_create(0, 1),
+      .shader = malloc(sizeof(GFX_Shader)),
       .query = ecs_query(world, {.terms = {{ecs_id(GFX_Sprite)},
                                            {ecs_id(GFX_Transform)},
                                            {ecs_id(GFX_SpriteLayer)}}}),
   };
+  // No uniform, one texture
+  *sr.shader = gfx_shader_create_wgsl("sprite.wgsl", _gfx_sprite_wgsl, 0, 1);
   ecs_singleton_set_ptr(world, GFX_SpriteRenderer, &sr);
 }

@@ -36,8 +36,7 @@ typedef struct {
 
 // Renderer singleton, what every sprite batch shares
 typedef struct {
-  GFX_Shader shader;
-  GFX_MaterialLayout material_layout;
+  GFX_Shader *shader;
   GFX_Pipeline pipeline;
   ecs_query_t *query;
 

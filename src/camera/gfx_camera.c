@@ -4,25 +4,25 @@
 
 ECS_COMPONENT_DECLARE(GFX_Camera);
 ECS_COMPONENT_DECLARE(GFX_CameraOrtho);
-ECS_COMPONENT_DECLARE(GFX_CameraPixel);
+ECS_COMPONENT_DECLARE(GFX_CameraPerspective);
 
+// The world moves opposite to the camera
 void _gfx_sys_camera_sync_transform(ecs_iter_t *it) {
   GFX_Camera *cam = ecs_field(it, GFX_Camera, 0);
   GFX_Transform *t = ecs_field(it, GFX_Transform, 1);
 
   for (int i = 0; i < it->count; ++i) {
-    glm_mat4_copy(t[i], cam[i].model);
+    glm_mat4_inv(t[i], cam[i].view);
   }
 }
 
-// Scale pixel cameras by their pixels per world unit
-void _gfx_sys_camera_pixel_sync(ecs_iter_t *it) {
+// Perspective projection of a square view
+void _gfx_sys_camera_perspective_project(ecs_iter_t *it) {
   GFX_Camera *cam = ecs_field(it, GFX_Camera, 0);
-  GFX_CameraPixel *pixel = ecs_field(it, GFX_CameraPixel, 1);
+  GFX_CameraPerspective *p = ecs_field(it, GFX_CameraPerspective, 1);
 
   for (int i = 0; i < it->count; ++i) {
-    glm_mat4_identity(cam[i].view);
-    glm_scale_uni(cam[i].view, 1.0f / pixel[i].ratio);
+    glm_perspective(p[i].fov, 1.0f, p[i].near, p[i].far, cam[i].projection);
   }
 }
 
@@ -50,12 +50,8 @@ void gfx_camera_view_projection(GFX_Camera camera, float aspect, mat4 dest) {
     break;
   }
 
-  // The world moves opposite to the camera
-  mat4 world_to_camera;
-  glm_mat4_inv(camera.model, world_to_camera);
   glm_mat4_mul(fit, camera.projection, dest);
   glm_mat4_mul(dest, camera.view, dest);
-  glm_mat4_mul(dest, world_to_camera, dest);
 }
 
 void GfxCameraImport(ecs_world_t *world) {
@@ -64,13 +60,13 @@ void GfxCameraImport(ecs_world_t *world) {
 
   ECS_COMPONENT_DEFINE(world, GFX_Camera);
   ECS_COMPONENT_DEFINE(world, GFX_CameraOrtho);
-  ECS_COMPONENT_DEFINE(world, GFX_CameraPixel);
+  ECS_COMPONENT_DEFINE(world, GFX_CameraPerspective);
 
   // Independent of each other, so they can run in any order
   ECS_SYSTEM(world, _gfx_sys_camera_sync_transform, GfxPreRender, GFX_Camera,
              GFX_Transform);
-  ECS_SYSTEM(world, _gfx_sys_camera_pixel_sync, GfxPreRender, GFX_Camera,
-             GFX_CameraPixel);
+  ECS_SYSTEM(world, _gfx_sys_camera_perspective_project, GfxPreRender,
+             GFX_Camera, GFX_CameraPerspective);
   ECS_SYSTEM(world, _gfx_sys_camera_ortho_project, GfxPreRender, GFX_Camera,
              GFX_CameraOrtho);
 }

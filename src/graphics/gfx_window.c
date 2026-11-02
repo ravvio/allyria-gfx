@@ -16,6 +16,9 @@ typedef struct {
   // Size the surface is configured with (framebuffer pixels)
   int width;
   int height;
+  // Image drawn this frame, NULL when the window wasn't begun
+  WGPUTexture frame_texture;
+  WGPUTextureView frame_view;
 } _GFX_Window;
 
 static void _gfx_window_depth_release(_GFX_Window *window) {
@@ -233,9 +236,21 @@ GFX_Window *gfx_window_init(int w, int h, const char *window_name) {
     gfx_window_destroy(window);
     return NULL;
   }
-  window->format = caps.formats[0];
-  _gfx.surface_format = window->format;
+  // Every window uses the first window's format, pipelines are built for it
+  if (_gfx.surface_format == WGPUTextureFormat_Undefined) {
+    _gfx.surface_format = caps.formats[0];
+  }
+  window->format = _gfx.surface_format;
+  bool supported = false;
+  for (size_t i = 0; i < caps.formatCount; i++) {
+    supported |= caps.formats[i] == window->format;
+  }
   wgpuSurfaceCapabilitiesFreeMembers(caps);
+  if (!supported) {
+    fprintf(stderr, "[e] window doesn't support the first window's format\n");
+    gfx_window_destroy(window);
+    return NULL;
+  }
 
   _gfx_window_configure(window);
 
@@ -287,18 +302,18 @@ void gfx_color_buffer_set_clear(const GFX_ColorRGBA color) {
   _gfx.clear_color = (WGPUColor){color[0], color[1], color[2], color[3]};
 }
 
-// Begin a render pass on the frame into target, NULL for the window
-static void _gfx_pass_begin(const GFX_RenderTexture *target,
-                            WGPULoadOp color_load) {
+// Begin a render pass into color and depth
+static void _gfx_pass_begin(WGPUTextureView color_view,
+                            WGPUTextureView depth_view, WGPULoadOp color_load) {
   WGPURenderPassColorAttachment color = WGPU_RENDER_PASS_COLOR_ATTACHMENT_INIT;
-  color.view = target ? target->texture.view : _gfx.view;
+  color.view = color_view;
   color.loadOp = color_load;
   color.storeOp = WGPUStoreOp_Store;
   color.clearValue = _gfx.clear_color;
 
   WGPURenderPassDepthStencilAttachment depth =
       WGPU_RENDER_PASS_DEPTH_STENCIL_ATTACHMENT_INIT;
-  depth.view = target ? target->depth_view : _gfx.depth_view;
+  depth.view = depth_view;
   depth.depthLoadOp = WGPULoadOp_Clear;
   depth.depthStoreOp = WGPUStoreOp_Discard;
   depth.depthClearValue = 1.0f;
@@ -308,13 +323,14 @@ static void _gfx_pass_begin(const GFX_RenderTexture *target,
   pass_desc.colorAttachments = &color;
   pass_desc.depthStencilAttachment = &depth;
   _gfx.pass = wgpuCommandEncoderBeginRenderPass(_gfx.encoder, &pass_desc);
-  _gfx.pass_target = target;
 }
 
 static void _gfx_pass_end(void) {
-  wgpuRenderPassEncoderEnd(_gfx.pass);
-  wgpuRenderPassEncoderRelease(_gfx.pass);
-  _gfx.pass = NULL;
+  if (_gfx.pass) {
+    wgpuRenderPassEncoderEnd(_gfx.pass);
+    wgpuRenderPassEncoderRelease(_gfx.pass);
+    _gfx.pass = NULL;
+  }
 }
 
 static uint32_t _gfx_viewport_edge(float t, uint32_t size) {
@@ -338,33 +354,18 @@ void gfx_viewport_pixels(const float rect[4], uint32_t width, uint32_t height,
   out[3] = y1 > y0 ? y1 - y0 : 0;
 }
 
-// Draw the next calls into rect of target with view_projection, NULL target
-// for the window
-bool gfx_frame_view_begin(GFX_RenderTexture *target, const vec4 rect,
-                          mat4 view_projection) {
-  if (!_gfx.pass || (target && !target->texture.texture)) {
-    return false;
-  }
+// Begin a view in a new pass, so views don't share depth
+static bool _gfx_view_begin(WGPUTextureView color, WGPUTextureView depth,
+                            uint32_t width, uint32_t height, WGPULoadOp load,
+                            const vec4 rect, mat4 view_projection) {
   uint32_t px[4];
-  gfx_viewport_pixels(rect, target ? target->texture.width : _gfx.width,
-                      target ? target->texture.height : _gfx.height, px);
+  gfx_viewport_pixels(rect, width, height, px);
   if (px[2] == 0 || px[3] == 0) {
     return false;
   }
 
-  // The first window view uses the frame's pass, every other view gets a new
-  // one so views don't share depth
-  if (target || _gfx.pass_target || _gfx.view_count > 0) {
-    _gfx_pass_end();
-    WGPULoadOp load = WGPULoadOp_Load;
-    if (target && target->cleared_frame != _gfx.frame) {
-      target->cleared_frame = _gfx.frame;
-      load = WGPULoadOp_Clear;
-    }
-    _gfx_pass_begin(target, load);
-  }
-  _gfx.view_count++;
-
+  _gfx_pass_end();
+  _gfx_pass_begin(color, depth, load);
   wgpuRenderPassEncoderSetViewport(_gfx.pass, (float)px[0], (float)px[1],
                                    (float)px[2], (float)px[3], 0.0f, 1.0f);
   wgpuRenderPassEncoderSetScissorRect(_gfx.pass, px[0], px[1], px[2], px[3]);
@@ -372,15 +373,59 @@ bool gfx_frame_view_begin(GFX_RenderTexture *target, const vec4 rect,
   return true;
 }
 
-// Begin drawing a frame on window
-void gfx_frame_begin(GFX_Window *window) {
+// Draw the next calls into rect of window with view_projection
+bool gfx_frame_view_begin(GFX_Window *window, const vec4 rect,
+                          mat4 view_projection) {
   _GFX_Window *win = window;
+  if (!win->frame_view) {
+    return false;
+  }
+  return _gfx_view_begin(win->frame_view, win->depth_view, win->width,
+                         win->height, WGPULoadOp_Load, rect, view_projection);
+}
 
-  // Follow window resizes, skip the frame while minimized
+// Draw the next calls into rect of texture with view_projection
+bool gfx_frame_view_begin_texture(GFX_RenderTexture *texture, const vec4 rect,
+                                  mat4 view_projection) {
+  if (!_gfx.encoder || !texture->texture.texture) {
+    return false;
+  }
+  // Cleared by its first view of the frame
+  WGPULoadOp load =
+      texture->cleared_frame == _gfx.frame ? WGPULoadOp_Load : WGPULoadOp_Clear;
+  if (!_gfx_view_begin(texture->texture.view, texture->depth_view,
+                       texture->texture.width, texture->texture.height, load,
+                       rect, view_projection)) {
+    return false;
+  }
+  texture->cleared_frame = _gfx.frame;
+  return true;
+}
+
+// Begin a frame, where every window and texture is drawn
+void gfx_frame_begin(void) {
+  _gfx.frame++;
+  _gfx.window_count = 0;
+  _gfx.encoder = wgpuDeviceCreateCommandEncoder(_gfx.device, NULL);
+  gfx_uniforms_frame_begin();
+}
+
+// Draw window this frame, false when it can't be drawn
+bool gfx_frame_window_begin(GFX_Window *window) {
+  _GFX_Window *win = window;
+  if (!_gfx.encoder || win->frame_view) {
+    return win->frame_view != NULL;
+  }
+  if (_gfx.window_count == GFX_MAX_WINDOWS) {
+    fprintf(stderr, "[e] more than %d windows in a frame\n", GFX_MAX_WINDOWS);
+    return false;
+  }
+
+  // Follow window resizes, skip the window while minimized
   int w, h;
   GLFWCall(glfwGetFramebufferSize(win->glfw, &w, &h));
   if ((w != win->width || h != win->height) && !_gfx_window_configure(win)) {
-    return;
+    return false;
   }
 
   WGPUSurfaceTexture surface_texture = WGPU_SURFACE_TEXTURE_INIT;
@@ -394,29 +439,25 @@ void gfx_frame_begin(GFX_Window *window) {
       wgpuTextureRelease(surface_texture.texture);
     }
     _gfx_window_configure(win);
-    return;
+    return false;
   }
 
-  _gfx.texture = surface_texture.texture;
-  _gfx.view = wgpuTextureCreateView(_gfx.texture, NULL);
-  _gfx.depth_view = win->depth_view;
-  _gfx.width = win->width;
-  _gfx.height = win->height;
-  _gfx.view_count = 0;
-  _gfx.frame++;
-  _gfx.encoder = wgpuDeviceCreateCommandEncoder(_gfx.device, NULL);
+  win->frame_texture = surface_texture.texture;
+  win->frame_view = wgpuTextureCreateView(win->frame_texture, NULL);
+  _gfx.windows[_gfx.window_count++] = win;
 
-  _gfx_pass_begin(NULL, WGPULoadOp_Clear);
-  gfx_uniforms_frame_begin();
+  // Clear it
+  _gfx_pass_end();
+  _gfx_pass_begin(win->frame_view, win->depth_view, WGPULoadOp_Clear);
+  _gfx_pass_end();
+  return true;
 }
 
-// Finish the frame and show it on window
-void gfx_frame_end(GFX_Window *window) {
-  // No frame this tick (minimized or surface lost)
-  if (!_gfx.pass) {
+// Finish the frame and show every window drawn in it
+void gfx_frame_end(void) {
+  if (!_gfx.encoder) {
     return;
   }
-
   _gfx_pass_end();
 
   WGPUCommandBuffer commands = wgpuCommandEncoderFinish(_gfx.encoder, NULL);
@@ -425,18 +466,22 @@ void gfx_frame_end(GFX_Window *window) {
   wgpuQueueSubmit(_gfx.queue, 1, &commands);
   wgpuCommandBufferRelease(commands);
   wgpuCommandEncoderRelease(_gfx.encoder);
+  _gfx.encoder = NULL;
+
+  for (uint32_t i = 0; i < _gfx.window_count; i++) {
+    _GFX_Window *win = _gfx.windows[i];
+#ifndef __EMSCRIPTEN__
+    // The browser presents on its own
+    wgpuSurfacePresent(win->surface);
+#endif
+    wgpuTextureViewRelease(win->frame_view);
+    wgpuTextureRelease(win->frame_texture);
+    win->frame_view = NULL;
+    win->frame_texture = NULL;
+  }
+  _gfx.window_count = 0;
 
 #ifndef __EMSCRIPTEN__
-  // The browser presents on its own
-  wgpuSurfacePresent(((_GFX_Window *)window)->surface);
   wgpuInstanceProcessEvents(_gfx.instance);
 #endif
-
-  wgpuTextureViewRelease(_gfx.view);
-  wgpuTextureRelease(_gfx.texture);
-
-  _gfx.pass = NULL;
-  _gfx.encoder = NULL;
-  _gfx.view = NULL;
-  _gfx.texture = NULL;
 }

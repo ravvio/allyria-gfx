@@ -13,16 +13,14 @@ static void pan(ecs_iter_t *it) {
   }
 }
 
-static ecs_entity_t camera_create(ecs_world_t *world, float ratio, float x) {
+static ecs_entity_t camera_create(ecs_world_t *world, float size, float x) {
   ecs_entity_t cam = ecs_new(world);
   ecs_set(world, cam, GFX_Camera,
           {
               .projection = GLM_MAT4_IDENTITY_INIT,
               .view = GLM_MAT4_IDENTITY_INIT,
-              .model = GLM_MAT4_IDENTITY_INIT,
           });
-  ecs_set(world, cam, GFX_CameraOrtho, {.size = 1.0});
-  ecs_set(world, cam, GFX_CameraPixel, {.ratio = ratio});
+  ecs_set(world, cam, GFX_CameraOrtho, {.size = size});
   ecs_set(world, cam, GFX_Transform, GLM_MAT4_IDENTITY_INIT);
   GFX_Transform *t = ecs_get_mut(world, cam, GFX_Transform);
   glm_translate_x(*t, x);
@@ -30,11 +28,15 @@ static ecs_entity_t camera_create(ecs_world_t *world, float ratio, float x) {
 }
 
 // A viewport showing camera, with the sprites drawn into it
-static void viewport_create(ecs_world_t *world, ecs_entity_t camera, float x,
-                            float y, float w, float h, int32_t order) {
+static void viewport_create(ecs_world_t *world, ecs_entity_t window,
+                            ecs_entity_t camera, float x, float y, float w,
+                            float h, int32_t order) {
   ecs_entity_t view = ecs_new(world);
   ecs_set(world, view, GFX_Viewport,
-          {.camera = camera, .rect = {x, y, w, h}, .order = order});
+          {.camera = camera,
+           .surface = window,
+           .rect = {x, y, w, h},
+           .order = order});
   ecs_add(world, ecs_new_w_pair(world, EcsChildOf, view), GFX_SpriteBatch);
 }
 
@@ -54,8 +56,9 @@ int main(void) {
     gfx_terminate(world);
     return 1;
   }
-  ecs_singleton_set(world, GFX_Surface,
-                    {.title = "Engine Viewports", .width = 800, .height = 600});
+  ecs_entity_t window = ecs_new(world);
+  ecs_set(world, window, GFX_Surface,
+          {.title = "Engine Viewports", .width = 800, .height = 600});
 
   ECS_IMPORT(world, GfxTransform);
   ECS_IMPORT(world, GfxCamera);
@@ -68,12 +71,12 @@ int main(void) {
   ecs_entity_t left = camera_create(world, 128.0f, 72.0f);
   ecs_entity_t right = camera_create(world, 128.0f, 72.0f);
   ecs_add(world, right, Panning);
-  viewport_create(world, left, 0.0f, 0.0f, 0.5f, 1.0f, 0);
-  viewport_create(world, right, 0.5f, 0.0f, 0.5f, 1.0f, 0);
+  viewport_create(world, window, left, 0.0f, 0.0f, 0.5f, 1.0f, 0);
+  viewport_create(world, window, right, 0.5f, 0.0f, 0.5f, 1.0f, 0);
 
   // Minimap on top of the right half, zoomed out
   ecs_entity_t minimap = camera_create(world, 32.0f, 72.0f);
-  viewport_create(world, minimap, 0.72f, 0.04f, 0.24f, 0.24f, 1);
+  viewport_create(world, window, minimap, 0.72f, 0.04f, 0.24f, 0.24f, 1);
 
   GFX_Texture2D atlas =
       gfx_texture2d_load("./assets/textures/sprites/sensei.png",

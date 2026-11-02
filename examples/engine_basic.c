@@ -17,8 +17,8 @@ int main(void) {
     gfx_terminate(world);
     return 1;
   }
-  ecs_singleton_set(world, GFX_Surface,
-                    {.title = "Engine Basic", .width = 800, .height = 600});
+  ecs_set(world, ecs_new(world), GFX_Surface,
+          {.title = "Engine Basic", .width = 800, .height = 600});
 
   ECS_IMPORT(world, GfxTransform);
   ECS_IMPORT(world, GfxCamera);

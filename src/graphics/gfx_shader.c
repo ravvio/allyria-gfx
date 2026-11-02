@@ -40,7 +40,9 @@ static WGPUStringView _gfx_str(const char *str) {
 // ============================================================================
 
 // Create a shader module from WGSL code, errors are logged by the device
-static GFX_Shader _gfx_shader_create(const char *label, WGPUStringView code) {
+static GFX_Shader _gfx_shader_create(const char *label, WGPUStringView code,
+                                     uint32_t uniform_size,
+                                     uint32_t texture_count) {
   WGPUShaderSourceWGSL wgsl = WGPU_SHADER_SOURCE_WGSL_INIT;
   wgsl.chain.sType = WGPUSType_ShaderSourceWGSL;
   wgsl.code = code;
@@ -52,12 +54,21 @@ static GFX_Shader _gfx_shader_create(const char *label, WGPUStringView code) {
   GFX_Shader shader = {
       .label = label,
       .module = wgpuDeviceCreateShaderModule(_gfx.device, &desc),
+      .uniform_size = uniform_size,
+      .texture_count = texture_count,
   };
+  if (uniform_size > 0 || texture_count > 0) {
+    shader.material_layout =
+        gfx_material_layout_create(uniform_size, texture_count);
+    shader.pipeline_layout =
+        gfx_uniforms_pipeline_layout(shader.material_layout);
+  }
   return shader;
 }
 
 // Create a shader from a WGSL file
-GFX_Shader gfx_shader_create(const char *filepath) {
+GFX_Shader gfx_shader_create(const char *filepath, uint32_t uniform_size,
+                             uint32_t texture_count) {
   size_t size;
   char *source = _gfx_file_read(filepath, &size);
   if (source == NULL) {
@@ -65,8 +76,8 @@ GFX_Shader gfx_shader_create(const char *filepath) {
     return shader;
   }
 
-  GFX_Shader shader =
-      _gfx_shader_create(filepath, (WGPUStringView){source, size});
+  GFX_Shader shader = _gfx_shader_create(
+      filepath, (WGPUStringView){source, size}, uniform_size, texture_count);
   free(source);
 
   fprintf(stderr, "[i] loaded shader %s\n", filepath);
@@ -74,13 +85,20 @@ GFX_Shader gfx_shader_create(const char *filepath) {
 }
 
 // Create a shader from WGSL source in memory
-GFX_Shader gfx_shader_create_wgsl(const char *label, const char *source) {
-  return _gfx_shader_create(label, _gfx_str(source));
+GFX_Shader gfx_shader_create_wgsl(const char *label, const char *source,
+                                  uint32_t uniform_size,
+                                  uint32_t texture_count) {
+  return _gfx_shader_create(label, _gfx_str(source), uniform_size,
+                            texture_count);
 }
 
 void gfx_shader_destroy(const GFX_Shader *shader) {
   if (shader->module) {
     wgpuShaderModuleRelease(shader->module);
+  }
+  if (shader->material_layout) {
+    wgpuPipelineLayoutRelease(shader->pipeline_layout);
+    wgpuBindGroupLayoutRelease(shader->material_layout);
   }
 }
 
@@ -94,8 +112,7 @@ static int _gfx_feature_enabled(enum GFX_GraphicsFeature feature) {
 
 // Create a render pipeline drawing triangles to the window surface
 GFX_Pipeline gfx_pipeline_create(const GFX_Shader *shader,
-                                 const GFX_VertexLayout *layout,
-                                 const GFX_MaterialLayout *material) {
+                                 const GFX_VertexLayout *layout) {
   WGPUVertexBufferLayout buffer = WGPU_VERTEX_BUFFER_LAYOUT_INIT;
   buffer.stepMode = layout->step ? layout->step : WGPUVertexStepMode_Vertex;
   buffer.arrayStride = layout->stride;
@@ -124,15 +141,16 @@ GFX_Pipeline gfx_pipeline_create(const GFX_Shader *shader,
 
   WGPUFragmentState fragment = WGPU_FRAGMENT_STATE_INIT;
   fragment.module = shader->module;
-  fragment.entryPoint = _gfx_str("fs_main");
+  fragment.entryPoint = _gfx_str("frag_main");
   fragment.targetCount = 1;
   fragment.targets = &target;
 
   WGPURenderPipelineDescriptor desc = WGPU_RENDER_PIPELINE_DESCRIPTOR_INIT;
   desc.label = _gfx_str(shader->label);
-  desc.layout = material ? material->pipeline_layout : _gfx.pipeline_layout;
+  desc.layout =
+      shader->pipeline_layout ? shader->pipeline_layout : _gfx.pipeline_layout;
   desc.vertex.module = shader->module;
-  desc.vertex.entryPoint = _gfx_str("vs_main");
+  desc.vertex.entryPoint = _gfx_str("vert_main");
   desc.vertex.bufferCount = 1;
   desc.vertex.buffers = &buffer;
   desc.primitive.topology = WGPUPrimitiveTopology_TriangleList;

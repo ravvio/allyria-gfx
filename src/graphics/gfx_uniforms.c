@@ -142,7 +142,6 @@ void gfx_uniforms_frame_begin(void) {
   mat4 identity = GLM_MAT4_IDENTITY_INIT;
   uint32_t offset;
   _gfx_uniforms_push(identity, &offset);
-  _gfx_uniforms_bind_identity();
 }
 
 // Prepare uniforms for the new pass

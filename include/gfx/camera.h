@@ -13,7 +13,6 @@ typedef struct {
   enum GFX_CameraScalingMode scaling_mode;
   mat4 projection;
   mat4 view;
-  mat4 model;
 } GFX_Camera;
 extern ECS_COMPONENT_DECLARE(GFX_Camera);
 
@@ -24,9 +23,12 @@ typedef struct {
 extern ECS_COMPONENT_DECLARE(GFX_CameraOrtho);
 
 typedef struct {
-  float ratio;
-} GFX_CameraPixel;
-extern ECS_COMPONENT_DECLARE(GFX_CameraPixel);
+  // Field of view along the fixed axis in radians
+  float fov;
+  float near;
+  float far;
+} GFX_CameraPerspective;
+extern ECS_COMPONENT_DECLARE(GFX_CameraPerspective);
 
 // View-projection of camera seen through a viewport of this aspect ratio
 void gfx_camera_view_projection(GFX_Camera camera, float aspect, mat4 dest);

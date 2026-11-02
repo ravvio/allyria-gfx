@@ -12,8 +12,9 @@ int main(void) {
   gfx_color_buffer_set_clear(color);
 
   while (!gfx_window_should_close(win)) {
-    gfx_frame_begin(win);
-    gfx_frame_end(win);
+    gfx_frame_begin();
+    gfx_frame_window_begin(win);
+    gfx_frame_end();
     gfx_window_events_poll();
   }
 

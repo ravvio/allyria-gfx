@@ -16,10 +16,12 @@ void gfx_window_scale(GFX_Window *window, float *sx, float *sy);
 int gfx_window_should_close(GFX_Window *window);
 void gfx_window_events_poll(void);
 
-// Frame
+// Frame, every window and render texture is drawn in one frame
 
 void gfx_color_buffer_set_clear(const GFX_ColorRGBA color);
-void gfx_frame_begin(GFX_Window *window);
-void gfx_frame_end(GFX_Window *window);
+void gfx_frame_begin(void);
+// Draw window this frame, false when it can't be drawn (e.g. minimized)
+bool gfx_frame_window_begin(GFX_Window *window);
+void gfx_frame_end(void);
 
 #endif

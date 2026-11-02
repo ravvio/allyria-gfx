@@ -20,7 +20,7 @@ struct VertexOutput {
 };
 
 @vertex
-fn vs_main(@builtin(vertex_index) index: u32, instance: Instance) -> VertexOutput {
+fn vert_main(@builtin(vertex_index) index: u32, instance: Instance) -> VertexOutput {
     // Unit quad centered on the origin, two counter clockwise triangles
     var corners = array<vec2f, 6>(
         vec2f(-0.5, -0.5), vec2f(0.5, -0.5), vec2f(0.5, 0.5),
@@ -37,6 +37,6 @@ fn vs_main(@builtin(vertex_index) index: u32, instance: Instance) -> VertexOutpu
 }
 
 @fragment
-fn fs_main(input: VertexOutput) -> @location(0) vec4f {
+fn frag_main(input: VertexOutput) -> @location(0) vec4f {
     return textureSample(sprite_tex, sprite_sampler, input.uv);
 }

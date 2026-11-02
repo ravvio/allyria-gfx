@@ -19,8 +19,9 @@ int main(void) {
     gfx_terminate(world);
     return 1;
   }
-  ecs_singleton_set(world, GFX_Surface,
-                    {.title = "Engine Sprites", .width = 800, .height = 600});
+  ecs_entity_t window = ecs_new(world);
+  ecs_set(world, window, GFX_Surface,
+          {.title = "Engine Sprites", .width = 800, .height = 600});
 
   ECS_IMPORT(world, GfxTransform);
   ECS_IMPORT(world, GfxCamera);
@@ -31,15 +32,14 @@ int main(void) {
           {
               .projection = GLM_MAT4_IDENTITY_INIT,
               .view = GLM_MAT4_IDENTITY_INIT,
-              .model = GLM_MAT4_IDENTITY_INIT,
           });
-  ecs_set(world, cam, GFX_CameraOrtho, {.size = 1.0});
-  ecs_set(world, cam, GFX_CameraPixel, {.ratio = 128.0});
+  ecs_set(world, cam, GFX_CameraOrtho, {.size = 128.0});
   ecs_set(world, cam, GFX_Transform, GLM_MAT4_IDENTITY_INIT);
 
   // The whole window shows the camera, with the sprites drawn into it
   ecs_entity_t view = ecs_entity(world, {.name = "View"});
-  ecs_set(world, view, GFX_Viewport, {.camera = cam, .rect = {0, 0, 1, 1}});
+  ecs_set(world, view, GFX_Viewport,
+          {.camera = cam, .surface = window, .rect = {0, 0, 1, 1}});
   ecs_add(world, ecs_new_w_pair(world, EcsChildOf, view), GFX_SpriteBatch);
 
   GFX_Texture2D atlas =

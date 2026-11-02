@@ -10,6 +10,8 @@
 #include <GLFW/glfw3.h>
 #include <webgpu/webgpu.h>
 
+#define GFX_MAX_WINDOWS 8
+
 // WebGPU state, the equivalent of the GL context
 typedef struct {
   WGPUInstance instance;
@@ -24,19 +26,12 @@ typedef struct {
   uint32_t features;
 
   // Current frame
-  WGPUTexture texture;
-  WGPUTextureView view;
-  WGPUTextureView depth_view;
-  // Size of the image being drawn this frame, in pixels
-  uint32_t width;
-  uint32_t height;
   WGPUCommandEncoder encoder;
-  // NULL when the frame was skipped
+  // NULL outside a view
   WGPURenderPassEncoder pass;
-  // What the pass draws into, NULL for the window
-  const GFX_RenderTexture *pass_target;
-  // Views begun this frame
-  uint32_t view_count;
+  // Windows begun this frame
+  void *windows[GFX_MAX_WINDOWS];
+  uint32_t window_count;
   // Frames begun so far
   uint64_t frame;
 } _GFX_State;
@@ -73,6 +68,8 @@ void gfx_texture_downsample(const uint8_t *src, int src_w, int src_h,
 
 void gfx_materials_init(void);
 void gfx_materials_terminate(void);
+WGPUBindGroupLayout gfx_material_layout_create(uint32_t uniform_size,
+                                               uint32_t texture_count);
 
 #ifdef GFX_NDEBUG
 #define GLFWCall(x) x;

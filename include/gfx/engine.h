@@ -51,16 +51,18 @@ void GfxRendererImport(ecs_world_t *world);
 
 // Viewport
 
-// What camera sees, drawn into a rect of the window by the renderers that are
+// What camera sees, drawn into a rect of a window by the renderers that are
 // children of the viewport
 typedef struct {
   ecs_entity_t camera;
+  // The window, an entity with GFX_Surface
+  ecs_entity_t surface;
+  // Draws into this texture instead of the window when not NULL
+  GFX_RenderTexture *texture;
   // {x, y, width, height} in fractions of the window, from the top left
   vec4 rect;
   // Higher orders draw later, on top
   int32_t order;
-  // NULL draws into the window
-  GFX_RenderTexture *target;
 } GFX_Viewport;
 extern ECS_COMPONENT_DECLARE(GFX_Viewport);
 

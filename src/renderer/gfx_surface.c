@@ -76,5 +76,4 @@ void gfx_surface_register(ecs_world_t *world) {
                     .copy = ecs_copy(GFX_Surface),
                     .on_set = _gfx_surface_on_set,
                 });
-  ecs_add_id(world, ecs_id(GFX_Surface), EcsSingleton);
 }

@@ -12,7 +12,7 @@ struct VertexOutput {
 };
 
 @vertex
-fn vs_main(@location(0) position: vec3f, @location(2) uv: vec2f) -> VertexOutput {
+fn vert_main(@location(0) position: vec3f, @location(2) uv: vec2f) -> VertexOutput {
     var output: VertexOutput;
     output.position = view_projection * model * vec4f(position, 1.0);
     output.uv = uv;
@@ -20,6 +20,6 @@ fn vs_main(@location(0) position: vec3f, @location(2) uv: vec2f) -> VertexOutput
 }
 
 @fragment
-fn fs_main(input: VertexOutput) -> @location(0) vec4f {
+fn frag_main(input: VertexOutput) -> @location(0) vec4f {
     return albedo * textureSample(albedo_tex, albedo_sampler, input.uv);
 }
