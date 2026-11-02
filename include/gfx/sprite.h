@@ -46,8 +46,11 @@ typedef struct {
 } GFX_SpriteRenderer;
 extern ECS_COMPONENT_DECLARE(GFX_SpriteRenderer);
 
-// Draws every sprite into the viewport it is a child of
+// Draws sprites into the viewport it is a child of
 typedef struct {
+  // Only sprites with this tag, 0 for every sprite
+  ecs_id_t tag;
+
   // Instance vertex buffer, grows when needed
   GFX_VertexBuffer instance_buffer;
   uint32_t instance_capacity;

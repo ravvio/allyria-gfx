@@ -57,6 +57,21 @@ static WGPUAddressMode _gfx_address_mode(enum GFX_Wrap wrap) {
   }
 }
 
+static WGPUSampler _gfx_sampler_create(enum GFX_TextureFilter filter,
+                                       enum GFX_Wrap wrap, uint32_t mip_count) {
+  WGPUFilterMode mode = filter == GFX_TEXTURE_FILTER_NEAREST
+                            ? WGPUFilterMode_Nearest
+                            : WGPUFilterMode_Linear;
+  WGPUSamplerDescriptor desc = WGPU_SAMPLER_DESCRIPTOR_INIT;
+  desc.addressModeU = _gfx_address_mode(wrap);
+  desc.addressModeV = _gfx_address_mode(wrap);
+  desc.magFilter = mode;
+  desc.minFilter = mode;
+  desc.mipmapFilter = mip_count > 1 ? WGPUMipmapFilterMode_Linear
+                                    : WGPUMipmapFilterMode_Nearest;
+  return wgpuDeviceCreateSampler(_gfx.device, &desc);
+}
+
 // Create a texture from RGBA8 pixels
 GFX_Texture2D gfx_texture2d_create(int width, int height, const uint8_t *pixels,
                                    enum GFX_TextureFilter filter,
@@ -103,24 +118,12 @@ GFX_Texture2D gfx_texture2d_create(int width, int height, const uint8_t *pixels,
   free(scratch[0]);
   free(scratch[1]);
 
-  // Sampler
-  WGPUFilterMode mode = filter == GFX_TEXTURE_FILTER_NEAREST
-                            ? WGPUFilterMode_Nearest
-                            : WGPUFilterMode_Linear;
-  WGPUSamplerDescriptor sampler_desc = WGPU_SAMPLER_DESCRIPTOR_INIT;
-  sampler_desc.addressModeU = _gfx_address_mode(wrap);
-  sampler_desc.addressModeV = _gfx_address_mode(wrap);
-  sampler_desc.magFilter = mode;
-  sampler_desc.minFilter = mode;
-  sampler_desc.mipmapFilter = mip_count > 1 ? WGPUMipmapFilterMode_Linear
-                                            : WGPUMipmapFilterMode_Nearest;
-
   GFX_Texture2D tex = {
       .width = width,
       .height = height,
       .texture = texture,
       .view = wgpuTextureCreateView(texture, NULL),
-      .sampler = wgpuDeviceCreateSampler(_gfx.device, &sampler_desc),
+      .sampler = _gfx_sampler_create(filter, wrap, mip_count),
   };
   return tex;
 }
@@ -152,4 +155,41 @@ void gfx_texture2d_destroy(const GFX_Texture2D *texture) {
     wgpuTextureViewRelease(texture->view);
     wgpuTextureRelease(texture->texture);
   }
+}
+
+// Create a texture that views can draw into
+GFX_RenderTexture gfx_render_texture_create(int width, int height,
+                                            enum GFX_TextureFilter filter) {
+  GFX_RenderTexture target = {0};
+  if (_gfx.surface_format == WGPUTextureFormat_Undefined) {
+    fprintf(stderr, "[e] render texture needs the window to be open\n");
+    return target;
+  }
+
+  WGPUTextureDescriptor desc = WGPU_TEXTURE_DESCRIPTOR_INIT;
+  desc.usage =
+      WGPUTextureUsage_RenderAttachment | WGPUTextureUsage_TextureBinding;
+  desc.dimension = WGPUTextureDimension_2D;
+  desc.size = (WGPUExtent3D){width, height, 1};
+  desc.format = _gfx.surface_format;
+  WGPUTexture texture = wgpuDeviceCreateTexture(_gfx.device, &desc);
+
+  target.texture = (GFX_Texture2D){
+      .width = width,
+      .height = height,
+      .texture = texture,
+      .view = wgpuTextureCreateView(texture, NULL),
+      .sampler = _gfx_sampler_create(filter, GFX_WRAP_CLAMP_EDGE, 1),
+  };
+  target.depth = gfx_depth_texture_create(width, height);
+  target.depth_view = wgpuTextureCreateView(target.depth, NULL);
+  return target;
+}
+
+void gfx_render_texture_destroy(const GFX_RenderTexture *target) {
+  if (target->depth) {
+    wgpuTextureViewRelease(target->depth_view);
+    wgpuTextureRelease(target->depth);
+  }
+  gfx_texture2d_destroy(&target->texture);
 }

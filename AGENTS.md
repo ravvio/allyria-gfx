@@ -46,7 +46,7 @@ cd build/examples && ./engine_sprites
 | `src/graphics/gfx_buffers.c` | Vertex/index buffers, vertex layout, draw calls |
 | `src/graphics/gfx_shader.c` | WGSL shader modules, render pipelines |
 | `src/graphics/gfx_uniforms.c` | Shared bind group/pipeline layouts, per-frame matrix arena (view-projections and models) |
-| `src/graphics/gfx_texture.c` | RGBA8 textures (from pixels or `stb_image`) with their sampler, CPU mipmaps |
+| `src/graphics/gfx_texture.c` | RGBA8 textures (from pixels or `stb_image`) with their sampler, CPU mipmaps; render textures (window format + own depth buffer) |
 | `src/graphics/gfx_material.c` | Material layouts (defined by the caller), materials, white fallback texture |
 | `src/graphics/gfx_geometry2d.c`, `gfx_geometry3d.c` | Meshes (`GFX_Vertex2D` / `GFX_Vertex3D`), quad and cuboid shapes, their vertex layouts |
 | `src/renderer/` | Render phases & frame systems, surface (window + DPI), viewport loop |
@@ -105,6 +105,12 @@ Viewports follow the flecs engine's `RenderView` (see `SOURCES.md`). A `GFX_View
 
 Draw code goes in a render batch, not in a system: systems run once per frame, batches once per viewport.
 
+Render textures (`GFX_RenderTexture`, from `gfx_render_texture_create`) are owned by the game like other textures, and a viewport draws into one through `GFX_Viewport.target` (NULL = window):
+- they use the window's format so every pipeline can draw into them, which means they are created after `GFX_Surface` is set;
+- viewports with a target run before window viewports, so the window shows this frame's result;
+- a target's color is cleared by its first view each frame, depth by every view;
+- a texture can't be drawn into and sampled in the same pass: give the batches tags (`GFX_SpriteBatch.tag`) so the sprite showing a render texture isn't drawn into it.
+
 Systems that depend on each other go in different phases, not in declaration order within one phase: flecs doesn't guarantee that order.
 
 Every frame's render pass has a `Depth24Plus` depth attachment, owned by the window and recreated on resize. Every pipeline therefore declares a depth state; without `GFX_GRAPHICS_FEATURE_DEPTH_TESTING` it uses compare `Always` with writes off. Each view after the first starts a new render pass (color loaded, depth cleared), so overlapping viewports don't share depth.
@@ -144,6 +150,7 @@ Native is the default. Configuring with `emcmake cmake` builds for the browser (
 - WebGPU has no `generateMipmap`.
   - **Linear textures** get a full mip chain built on the CPU at creation (2×2 box filter). Averaging non-premultiplied alpha can darken transparent edges in the smaller mips.
   - **Nearest textures** keep a single level, so atlas cells don't bleed.
-  - Move to GPU generation if load time matters or render-to-texture is added.
+  - **Render textures** have a single level.
+  - Move to GPU generation if load time matters or render textures need mips (shown smaller than their size).
 - The uniform arena holds 4096 draws per frame; past that, extra draws reuse the last model and an error is logged once per frame.
 - Editors may show `std::is_empty_v` errors in headers that include `flecs.h`: the editor parses the header as C++. It's not a build error.

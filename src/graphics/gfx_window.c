@@ -173,6 +173,15 @@ void gfx_graphics_enable(enum GFX_GraphicsFeature feature) {
 
 // *** WINDOW ***
 
+WGPUTexture gfx_depth_texture_create(uint32_t width, uint32_t height) {
+  WGPUTextureDescriptor desc = WGPU_TEXTURE_DESCRIPTOR_INIT;
+  desc.usage = WGPUTextureUsage_RenderAttachment;
+  desc.dimension = WGPUTextureDimension_2D;
+  desc.size = (WGPUExtent3D){width, height, 1};
+  desc.format = GFX_DEPTH_FORMAT;
+  return wgpuDeviceCreateTexture(_gfx.device, &desc);
+}
+
 // (Re)configure the surface to the framebuffer size, fails when minimized
 static bool _gfx_window_configure(_GFX_Window *window) {
   int w, h;
@@ -192,12 +201,7 @@ static bool _gfx_window_configure(_GFX_Window *window) {
 
   // Recreate the depth buffer at the new size
   _gfx_window_depth_release(window);
-  WGPUTextureDescriptor depth_desc = WGPU_TEXTURE_DESCRIPTOR_INIT;
-  depth_desc.usage = WGPUTextureUsage_RenderAttachment;
-  depth_desc.dimension = WGPUTextureDimension_2D;
-  depth_desc.size = (WGPUExtent3D){w, h, 1};
-  depth_desc.format = GFX_DEPTH_FORMAT;
-  window->depth = wgpuDeviceCreateTexture(_gfx.device, &depth_desc);
+  window->depth = gfx_depth_texture_create(w, h);
   window->depth_view = wgpuTextureCreateView(window->depth, NULL);
 
   window->width = w;
@@ -283,17 +287,18 @@ void gfx_color_buffer_set_clear(const GFX_ColorRGBA color) {
   _gfx.clear_color = (WGPUColor){color[0], color[1], color[2], color[3]};
 }
 
-// Begin a render pass on the frame
-static void _gfx_pass_begin(WGPULoadOp color_load) {
+// Begin a render pass on the frame into target, NULL for the window
+static void _gfx_pass_begin(const GFX_RenderTexture *target,
+                            WGPULoadOp color_load) {
   WGPURenderPassColorAttachment color = WGPU_RENDER_PASS_COLOR_ATTACHMENT_INIT;
-  color.view = _gfx.view;
+  color.view = target ? target->texture.view : _gfx.view;
   color.loadOp = color_load;
   color.storeOp = WGPUStoreOp_Store;
   color.clearValue = _gfx.clear_color;
 
   WGPURenderPassDepthStencilAttachment depth =
       WGPU_RENDER_PASS_DEPTH_STENCIL_ATTACHMENT_INIT;
-  depth.view = _gfx.depth_view;
+  depth.view = target ? target->depth_view : _gfx.depth_view;
   depth.depthLoadOp = WGPULoadOp_Clear;
   depth.depthStoreOp = WGPUStoreOp_Discard;
   depth.depthClearValue = 1.0f;
@@ -303,6 +308,7 @@ static void _gfx_pass_begin(WGPULoadOp color_load) {
   pass_desc.colorAttachments = &color;
   pass_desc.depthStencilAttachment = &depth;
   _gfx.pass = wgpuCommandEncoderBeginRenderPass(_gfx.encoder, &pass_desc);
+  _gfx.pass_target = target;
 }
 
 static void _gfx_pass_end(void) {
@@ -332,21 +338,30 @@ void gfx_viewport_pixels(const float rect[4], uint32_t width, uint32_t height,
   out[3] = y1 > y0 ? y1 - y0 : 0;
 }
 
-// Draw the next calls into rect with view_projection
-bool gfx_frame_view_begin(const vec4 rect, mat4 view_projection) {
-  if (!_gfx.pass) {
+// Draw the next calls into rect of target with view_projection, NULL target
+// for the window
+bool gfx_frame_view_begin(GFX_RenderTexture *target, const vec4 rect,
+                          mat4 view_projection) {
+  if (!_gfx.pass || (target && !target->texture.texture)) {
     return false;
   }
   uint32_t px[4];
-  gfx_viewport_pixels(rect, _gfx.width, _gfx.height, px);
+  gfx_viewport_pixels(rect, target ? target->texture.width : _gfx.width,
+                      target ? target->texture.height : _gfx.height, px);
   if (px[2] == 0 || px[3] == 0) {
     return false;
   }
 
-  // A new pass so views don't share depth
-  if (_gfx.view_count > 0) {
+  // The first window view uses the frame's pass, every other view gets a new
+  // one so views don't share depth
+  if (target || _gfx.pass_target || _gfx.view_count > 0) {
     _gfx_pass_end();
-    _gfx_pass_begin(WGPULoadOp_Load);
+    WGPULoadOp load = WGPULoadOp_Load;
+    if (target && target->cleared_frame != _gfx.frame) {
+      target->cleared_frame = _gfx.frame;
+      load = WGPULoadOp_Clear;
+    }
+    _gfx_pass_begin(target, load);
   }
   _gfx.view_count++;
 
@@ -388,9 +403,10 @@ void gfx_frame_begin(GFX_Window *window) {
   _gfx.width = win->width;
   _gfx.height = win->height;
   _gfx.view_count = 0;
+  _gfx.frame++;
   _gfx.encoder = wgpuDeviceCreateCommandEncoder(_gfx.device, NULL);
 
-  _gfx_pass_begin(WGPULoadOp_Clear);
+  _gfx_pass_begin(NULL, WGPULoadOp_Clear);
   gfx_uniforms_frame_begin();
 }
 

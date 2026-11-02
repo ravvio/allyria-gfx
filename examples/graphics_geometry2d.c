@@ -32,7 +32,7 @@ int main(void) {
 
   while (!gfx_window_should_close(win)) {
     gfx_frame_begin(win);
-    gfx_frame_view_begin(full_window, view_projection);
+    gfx_frame_view_begin(NULL, full_window, view_projection);
 
     gfx_pipeline_bind(&pipeline);
     for (int i = 0; i < 3; i++) {

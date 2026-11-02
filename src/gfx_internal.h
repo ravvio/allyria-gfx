@@ -4,6 +4,7 @@
 #define GFX_INTERNAL_DECL
 
 #include <gfx/core.h>
+#include <gfx/texture.h>
 
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
@@ -32,13 +33,18 @@ typedef struct {
   WGPUCommandEncoder encoder;
   // NULL when the frame was skipped
   WGPURenderPassEncoder pass;
+  // What the pass draws into, NULL for the window
+  const GFX_RenderTexture *pass_target;
   // Views begun this frame
   uint32_t view_count;
+  // Frames begun so far
+  uint64_t frame;
 } _GFX_State;
 extern _GFX_State _gfx;
 
 // Depth buffer format of every window
 #define GFX_DEPTH_FORMAT WGPUTextureFormat_Depth24Plus
+WGPUTexture gfx_depth_texture_create(uint32_t width, uint32_t height);
 
 // Uniforms
 

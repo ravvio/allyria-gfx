@@ -4,6 +4,7 @@
 #include <flecs.h>
 #include <gfx/core.h>
 #include <gfx/graphics.h>
+#include <gfx/texture.h>
 #include <gfx/window.h>
 
 // Setup
@@ -58,6 +59,8 @@ typedef struct {
   vec4 rect;
   // Higher orders draw later, on top
   int32_t order;
+  // NULL draws into the window
+  GFX_RenderTexture *target;
 } GFX_Viewport;
 extern ECS_COMPONENT_DECLARE(GFX_Viewport);
 

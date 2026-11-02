@@ -116,6 +116,10 @@ static void _gfx_sprite_batch_draw(ecs_world_t *world, ecs_entity_t entity,
   arrsetlen(batch->draws, 0);
   ecs_iter_t q = ecs_query_iter(world, sr->query);
   while (ecs_query_next(&q)) {
+    if (batch->tag &&
+        !ecs_table_has_id(ecs_get_world(world), q.table, batch->tag)) {
+      continue;
+    }
     GFX_Sprite *sprites = ecs_field(&q, GFX_Sprite, 0);
     GFX_Transform *transforms = ecs_field(&q, GFX_Transform, 1);
     GFX_SpriteLayer *layers = ecs_field(&q, GFX_SpriteLayer, 2);

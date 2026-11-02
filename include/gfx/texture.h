@@ -36,4 +36,17 @@ GFX_Texture2D gfx_texture2d_load(const char *filename,
                                  enum GFX_Wrap wrap);
 void gfx_texture2d_destroy(const GFX_Texture2D *texture);
 
+// A texture that views can draw into
+typedef struct {
+  GFX_Texture2D texture;
+  WGPUTexture depth;
+  WGPUTextureView depth_view;
+  uint64_t cleared_frame;
+} GFX_RenderTexture;
+
+// Create it after the window, it uses the window's format
+GFX_RenderTexture gfx_render_texture_create(int width, int height,
+                                            enum GFX_TextureFilter filter);
+void gfx_render_texture_destroy(const GFX_RenderTexture *target);
+
 #endif

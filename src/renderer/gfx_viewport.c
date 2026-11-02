@@ -10,6 +10,10 @@ static int _gfx_viewport_compare(ecs_entity_t e1, const void *p1,
   (void)e1, (void)e2;
   const GFX_Viewport *a = p1;
   const GFX_Viewport *b = p2;
+  // Render textures first, so the window can show them in the same frame
+  if (!a->target != !b->target) {
+    return a->target ? -1 : 1;
+  }
   return (a->order > b->order) - (a->order < b->order);
 }
 
@@ -20,8 +24,11 @@ void _gfx_sys_viewport_draw(ecs_iter_t *it) {
 
   for (int i = 0; i < it->count; ++i) {
     GFX_Viewport viewport = viewports[i];
-    float w = viewport.rect[2] * surface->true_width;
-    float h = viewport.rect[3] * surface->true_height;
+    GFX_RenderTexture *target = viewport.target;
+    float w = viewport.rect[2] *
+              (target ? target->texture.width : surface->true_width);
+    float h = viewport.rect[3] *
+              (target ? target->texture.height : surface->true_height);
     if (!viewport.camera || w <= 0.0f || h <= 0.0f) {
       continue;
     }
@@ -32,7 +39,7 @@ void _gfx_sys_viewport_draw(ecs_iter_t *it) {
 
     mat4 view_projection;
     gfx_camera_view_projection(*camera, w / h, view_projection);
-    if (!gfx_frame_view_begin(viewport.rect, view_projection)) {
+    if (!gfx_frame_view_begin(target, viewport.rect, view_projection)) {
       continue;
     }
 

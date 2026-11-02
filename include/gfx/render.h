@@ -78,8 +78,10 @@ void gfx_pipeline_bind(const GFX_Pipeline *pipeline);
 //   @group(0) @binding(0) var<uniform> view_projection: mat4x4f;
 //   @group(1) @binding(0) var<uniform> model: mat4x4f;
 
-// Draw the next calls into rect with view_projection
-bool gfx_frame_view_begin(const vec4 rect, mat4 view_projection);
+// Draw the next calls into rect of target with view_projection, NULL target
+// for the window
+bool gfx_frame_view_begin(GFX_RenderTexture *target, const vec4 rect,
+                          mat4 view_projection);
 // Model matrix of the next draws
 void gfx_draw_set_model(mat4 model);
 
