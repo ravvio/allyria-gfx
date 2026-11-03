@@ -49,11 +49,12 @@ cd build/examples && ./engine_sprites
 | `src/graphics/gfx_shader.c` | WGSL shader modules, render pipelines |
 | `src/graphics/gfx_uniforms.c` | Shared bind group/pipeline layouts, per-frame matrix arena (view-projections and models) |
 | `src/graphics/gfx_texture.c` | RGBA8 textures (from pixels or `stb_image`) with their sampler, CPU mipmaps; render textures (window format + own depth buffer) |
-| `src/graphics/gfx_material.c`, `unlit.wgsl` | Material bind group layouts (built for shaders), materials, white fallback texture, the built-in unlit shader (embedded with `#embed`) |
+| `src/graphics/gfx_material.c`, `unlit.wgsl`, `fullscreen.wgsl` | Material bind group layouts (built for shaders), materials, white fallback texture, the built-in unlit shader and the fullscreen vertex stage (embedded with `#embed`) |
+| `src/post/gfx_post.c` | Post effects: a render batch drawing a fullscreen pipeline with a material |
 | `src/graphics/gfx_geometry2d.c`, `gfx_geometry3d.c` | Meshes (`GFX_Vertex2D` / `GFX_Vertex3D`), quad and cuboid shapes, their vertex layouts |
 | `src/renderer/` | Render phases & frame systems, surface (window + DPI), viewport loop |
 | `src/sprite/gfx_sprite.c`, `sprite.wgsl` | Instanced sprites, drawn by a `GFX_SpriteBatch` in each viewport: query, sort by (layer, texture), one instance upload, one draw per texture run. The shader is embedded with `#embed` |
-| `src/camera/`, `src/sprite/`, `src/gfx_*.c` | flecs modules |
+| `src/camera/`, `src/sprite/`, `src/post/`, `src/gfx_*.c` | flecs modules |
 | `examples/` | Example programs and their own `CMakeLists.txt`, built like a game would build |
 | `examples/assets/` | The examples' shaders (WGSL, `vert_main` / `frag_main`) and textures |
 | `tests/` | CTest checks for GPU-free logic |
@@ -62,7 +63,7 @@ cd build/examples && ./engine_sprites
 ## Conventions
 
 - Types `GFX_PascalCase`, functions `gfx_snake_case`, enums `GFX_UPPER_CASE`. Integer types from `<stdint.h>` (`uint32_t`), not BSD `u_int32_t` (missing on Emscripten's libc).
-- flecs modules: `void Gfx<Name>Import(ecs_world_t *)` using `ECS_MODULE` + `ecs_set_name_prefix(world, "Gfx")`; imported with `ECS_IMPORT(world, Gfx<Name>)`.
+- flecs modules: `void Gfx<Name>Import(ecs_world_t *)` using `ECS_MODULE`; imported with `ECS_IMPORT(world, Gfx<Name>)`. No `ecs_set_name_prefix`: it would strip `Gfx` from entity names such as tags (`GfxFitSurface` → `FitSurface`), and query strings would no longer find them. `GFX_` components were never affected.
 - Components: `extern ECS_COMPONENT_DECLARE(T)` in the header, `ECS_COMPONENT_DECLARE(T)` in the `.c`, `ECS_COMPONENT_DEFINE` in the import function. Components owning GPU/heap resources get `ECS_DTOR` + `ECS_MOVE` hooks (see `gfx_surface.c`, `gfx_sprite.c`).
 - System callbacks are named `_gfx_sys_<what>`. Systems must not keep pointers to component storage across phases (flecs can move it): copy what they need, as the sprite renderer does.
 - Includes: consumers (examples) use `#include <gfx/...>`. Inside the library, sources and headers include each other with relative paths (`"../../include/gfx/gfx.h"`, `"../gfx_common.h"`).
@@ -89,7 +90,7 @@ cd build/examples && ./engine_sprites
 - Errors: return `GFX_Error` (`GFX_ERR_OK` == 0). Wrap GLFW calls in `GLFWCall(...)` (compiled out with `GFX_NDEBUG`). WebGPU errors come from the device's uncaptured-error callback.
 - Dynamic arrays and hashmaps use `stb_ds`. Math uses cglm (`mat4`, `vec3`, `glm_*`).
 - Design decisions based on outside sources (specs, articles, other engines): cite them and add them to `SOURCES.md` (references and a short note on consensus).
-- Formatting: `.clang-format` (LLVM style, 2-space indent, 80 cols). Format the files you touch. Vendored code is listed in `.clang-format-ignore` (read by clang-format 18+).
+- Formatting: `.clang-format` (LLVM style, 2-space indent, 80 cols). Format the files you touch: `scripts/format.sh` formats everything, `scripts/format.sh --check` only reports. Vendored code is listed in `.clang-format-ignore` (read by clang-format 18+).
 
 ## Frame / ECS flow
 
@@ -115,7 +116,11 @@ Render textures (`GFX_RenderTexture`, from `gfx_render_texture_create`) are owne
 - they use the window format so every pipeline can draw into them, which means they are created after the first window opens;
 - viewports with a target run before window viewports, so the window shows this frame's result;
 - a target's color is cleared by its first view each frame, depth by every view;
-- a texture can't be drawn into and sampled in the same pass: give the batches tags (`GFX_SpriteBatch.tag`) so the sprite showing a render texture isn't drawn into it.
+- a texture can't be drawn into and sampled in the same pass: give the batches tags (`GFX_SpriteBatch.tag`) so the sprite showing a render texture isn't drawn into it;
+- `gfx_render_texture_resize` recreates the textures in place (same struct address, same sampler). A viewport drawing into a texture with `GfxFitSurface` and a `surface` gets its texture resized to that window in `GfxPreRender` (`_gfx_sys_viewport_fit_surface`);
+- materials keep pointers to their textures and rebuild their bind group in `gfx_material_bind` when a texture's view changed, so they follow resized render textures. The sprite material cache is keyed by `const GFX_Texture2D *` for the same reason.
+
+Post effects (`GFX_PostEffect`, `src/post/`) are render batches drawing a fullscreen pipeline (`gfx_pipeline_fullscreen_create`: the engine's `fullscreen.wgsl` vertex stage, the effect's fragment stage and material) into a viewport without camera, which uses the identity view-projection.
 
 Systems that depend on each other go in different phases, not in declaration order within one phase: flecs doesn't guarantee that order.
 

@@ -4,6 +4,7 @@
 
 ECS_COMPONENT_DECLARE(GFX_Viewport);
 ECS_COMPONENT_DECLARE(GFX_RenderBatch);
+ECS_TAG_DECLARE(GfxFitSurface);
 
 static int _gfx_viewport_compare(ecs_entity_t e1, const void *p1,
                                  ecs_entity_t e2, const void *p2) {
@@ -23,12 +24,18 @@ void _gfx_sys_viewport_draw(ecs_iter_t *it) {
 
   for (int i = 0; i < it->count; ++i) {
     GFX_Viewport viewport = viewports[i];
-    if (!viewport.camera || !ecs_is_alive(it->world, viewport.camera)) {
-      continue;
-    }
-    const GFX_Camera *camera = ecs_get(it->world, viewport.camera, GFX_Camera);
-    if (!camera) {
-      continue;
+
+    mat4 view_projection = GLM_MAT4_IDENTITY_INIT;
+    const GFX_Camera *camera = NULL;
+
+    if (viewport.camera) {
+      if (!ecs_is_alive(it->world, viewport.camera)) {
+        continue;
+      }
+      camera = ecs_get(it->world, viewport.camera, GFX_Camera);
+      if (!camera) {
+        continue;
+      }
     }
 
     // Size of what it draws into
@@ -57,8 +64,10 @@ void _gfx_sys_viewport_draw(ecs_iter_t *it) {
       continue;
     }
 
-    mat4 view_projection;
-    gfx_camera_view_projection(*camera, w / h, view_projection);
+    if (camera) {
+      gfx_camera_view_projection(*camera, w / h, view_projection);
+    }
+
     bool begun =
         texture ? gfx_frame_view_begin_texture(texture, viewport.rect,
                                                view_projection)
@@ -81,9 +90,24 @@ void _gfx_sys_viewport_draw(ecs_iter_t *it) {
   }
 }
 
+void _gfx_sys_viewport_fit_surface(ecs_iter_t *it) {
+  GFX_Viewport *viewports = ecs_field(it, GFX_Viewport, 0);
+  for (int i = 0; i < it->count; ++i) {
+    GFX_Viewport v = viewports[i];
+    if (!v.texture || !v.surface || !ecs_is_alive(it->world, v.surface)) {
+      continue;
+    }
+    const GFX_Surface *s = ecs_get(it->world, v.surface, GFX_Surface);
+    if (s && s->window) {
+      gfx_render_texture_resize(v.texture, s->width, s->height);
+    }
+  }
+}
+
 void gfx_viewport_register(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, GFX_Viewport);
   ECS_COMPONENT_DEFINE(world, GFX_RenderBatch);
+  ECS_TAG_DEFINE(world, GfxFitSurface);
 
   // Renderers draw in the order they were added
   ecs_add_pair(world, ecs_id(GFX_Viewport), EcsWith, EcsOrderedChildren);
@@ -101,4 +125,7 @@ void gfx_viewport_register(ecs_world_t *world) {
                      },
                  .callback = _gfx_sys_viewport_draw,
              });
+
+  ECS_SYSTEM(world, _gfx_sys_viewport_fit_surface, GfxPreRender, GFX_Viewport,
+             GfxFitSurface);
 }

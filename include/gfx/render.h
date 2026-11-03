@@ -83,12 +83,15 @@ void gfx_shader_destroy(const GFX_Shader *shader);
 // Pipeline, shader + vertex layout + enabled graphics features. Create it
 // after the window, it renders to the window surface format.
 
+#define GFX_MAX_VERTEX_BUFFERS 8
+
 typedef struct {
   WGPURenderPipeline pipeline;
 } GFX_Pipeline;
 
 GFX_Pipeline gfx_pipeline_create(const GFX_Shader *shader,
                                  const GFX_VertexLayout *layout);
+GFX_Pipeline gfx_pipeline_fullscreen_create(const GFX_Shader *shader);
 void gfx_pipeline_destroy(const GFX_Pipeline *pipeline);
 void gfx_pipeline_bind(const GFX_Pipeline *pipeline);
 

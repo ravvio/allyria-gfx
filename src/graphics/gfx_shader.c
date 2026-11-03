@@ -1,8 +1,10 @@
 #include "gfx_internal.h"
+#include <assert.h>
 #include <gfx/graphics.h>
 #include <gfx/render.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <webgpu/webgpu.h>
 
 // Read a whole file, the caller frees the result
 static char *_gfx_file_read(const char *filepath, size_t *size) {
@@ -110,15 +112,13 @@ static int _gfx_feature_enabled(enum GFX_GraphicsFeature feature) {
   return (_gfx.features & (1u << feature)) != 0;
 }
 
-// Create a render pipeline drawing triangles to the window surface
-GFX_Pipeline gfx_pipeline_create(const GFX_Shader *shader,
-                                 const GFX_VertexLayout *layout) {
-  WGPUVertexBufferLayout buffer = WGPU_VERTEX_BUFFER_LAYOUT_INIT;
-  buffer.stepMode = layout->step ? layout->step : WGPUVertexStepMode_Vertex;
-  buffer.arrayStride = layout->stride;
-  buffer.attributeCount = layout->count;
-  buffer.attributes = layout->attributes;
+static GFX_Pipeline _gfx_pipeline_create(
+    const char *label, WGPUPipelineLayout pipeline_layout,
+    WGPUShaderModule vertex_module, WGPUShaderModule fragment_module,
+    const GFX_VertexLayout **buffer_layouts, uint32_t buffer_count) {
+  assert(buffer_count <= GFX_MAX_VERTEX_BUFFERS);
 
+  // Target
   WGPUBlendState blend = {
       .color =
           {
@@ -139,27 +139,18 @@ GFX_Pipeline gfx_pipeline_create(const GFX_Shader *shader,
     target.blend = &blend;
   }
 
-  WGPUFragmentState fragment = WGPU_FRAGMENT_STATE_INIT;
-  fragment.module = shader->module;
-  fragment.entryPoint = _gfx_str("frag_main");
-  fragment.targetCount = 1;
-  fragment.targets = &target;
-
+  // Pipeline descriptor
   WGPURenderPipelineDescriptor desc = WGPU_RENDER_PIPELINE_DESCRIPTOR_INIT;
-  desc.label = _gfx_str(shader->label);
-  desc.layout =
-      shader->pipeline_layout ? shader->pipeline_layout : _gfx.pipeline_layout;
-  desc.vertex.module = shader->module;
-  desc.vertex.entryPoint = _gfx_str("vert_main");
-  desc.vertex.bufferCount = 1;
-  desc.vertex.buffers = &buffer;
+  desc.label = _gfx_str(label);
+  desc.layout = pipeline_layout ? pipeline_layout : _gfx.pipeline_layout;
+
   desc.primitive.topology = WGPUPrimitiveTopology_TriangleList;
   desc.primitive.frontFace = WGPUFrontFace_CCW;
   if (_gfx_feature_enabled(GFX_GRAPHICS_FEATURE_CULL_BACK)) {
     desc.primitive.cullMode = WGPUCullMode_Back;
   }
 
-  // Every frame has a depth buffer, so every pipeline needs a depth state
+  // Depth
   WGPUDepthStencilState depth = WGPU_DEPTH_STENCIL_STATE_INIT;
   depth.format = GFX_DEPTH_FORMAT;
   if (_gfx_feature_enabled(GFX_GRAPHICS_FEATURE_DEPTH_TESTING)) {
@@ -170,12 +161,54 @@ GFX_Pipeline gfx_pipeline_create(const GFX_Shader *shader,
     depth.depthCompare = WGPUCompareFunction_Always;
   }
   desc.depthStencil = &depth;
+
+  // Buffers and Vertex
+  WGPUVertexBufferLayout buffers[GFX_MAX_VERTEX_BUFFERS];
+  for (uint32_t i = 0; i < buffer_count; ++i) {
+    buffers[i] = WGPU_VERTEX_BUFFER_LAYOUT_INIT;
+    buffers[i].stepMode = buffer_layouts[i]->step ? buffer_layouts[i]->step
+                                                  : WGPUVertexStepMode_Vertex;
+    buffers[i].arrayStride = buffer_layouts[i]->stride;
+    buffers[i].attributeCount = buffer_layouts[i]->count;
+    buffers[i].attributes = buffer_layouts[i]->attributes;
+  }
+
+  WGPUVertexState vertex = WGPU_VERTEX_STATE_INIT;
+  vertex.module = vertex_module;
+  vertex.entryPoint = _gfx_str("vert_main");
+  vertex.bufferCount = buffer_count;
+  vertex.buffers = buffers;
+
+  // Fragment
+  WGPUFragmentState fragment = WGPU_FRAGMENT_STATE_INIT;
+  fragment.module = fragment_module;
+  fragment.entryPoint = _gfx_str("frag_main");
+  fragment.targetCount = 1;
+  fragment.targets = &target;
+
   desc.fragment = &fragment;
 
+  desc.vertex = vertex;
+
+  // Finalize pipeline
   GFX_Pipeline pipeline = {
       .pipeline = wgpuDeviceCreateRenderPipeline(_gfx.device, &desc),
   };
   return pipeline;
+}
+
+// Create a render pipeline drawing triangles to the window surface
+GFX_Pipeline gfx_pipeline_create(const GFX_Shader *shader,
+                                 const GFX_VertexLayout *layout) {
+  return _gfx_pipeline_create(shader->label, shader->pipeline_layout,
+                              shader->module, shader->module, &layout, 1);
+}
+
+// Create a render pipeline drawing a single triangle covering the surface
+GFX_Pipeline gfx_pipeline_fullscreen_create(const GFX_Shader *shader) {
+  return _gfx_pipeline_create(shader->label, shader->pipeline_layout,
+                              gfx_shader_fullscreen()->module, shader->module,
+                              NULL, 0);
 }
 
 void gfx_pipeline_destroy(const GFX_Pipeline *pipeline) {

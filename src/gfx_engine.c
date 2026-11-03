@@ -23,7 +23,6 @@ void _gfx_sys_should_stop(ecs_iter_t *it) {
 
 void GfxEngineImport(ecs_world_t *world) {
   ECS_MODULE(world, GfxEngine);
-  ecs_set_name_prefix(world, "Gfx");
 
   ECS_SYSTEM(world, _gfx_sys_should_stop, EcsPreUpdate, 0);
 }

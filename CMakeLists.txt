@@ -124,6 +124,8 @@ set(GFXSOURCES
     ./src/renderer/gfx_viewport.c
     ./src/renderer/gfx_surface.c
 
+    ./src/post/gfx_post.c
+
     ./src/camera/gfx_camera.c
 
     ./src/sprite/gfx_sprite.c

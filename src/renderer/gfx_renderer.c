@@ -53,7 +53,6 @@ void _gfx_sys_post_render(ecs_iter_t *it) { gfx_window_events_poll(); }
 
 void GfxRendererImport(ecs_world_t *world) {
   ECS_MODULE(world, GfxRenderer);
-  ecs_set_name_prefix(world, "Gfx");
 
   gfx_surface_register(world);
 

@@ -47,6 +47,8 @@ typedef struct {
 // Create it after the window, it uses the window's format
 GFX_RenderTexture gfx_render_texture_create(int width, int height,
                                             enum GFX_TextureFilter filter);
+void gfx_render_texture_resize(GFX_RenderTexture *target, int width,
+                               int height);
 void gfx_render_texture_destroy(const GFX_RenderTexture *target);
 
 #endif

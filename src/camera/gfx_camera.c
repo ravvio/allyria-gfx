@@ -56,7 +56,6 @@ void gfx_camera_view_projection(GFX_Camera camera, float aspect, mat4 dest) {
 
 void GfxCameraImport(ecs_world_t *world) {
   ECS_MODULE(world, GfxCamera);
-  ecs_set_name_prefix(world, "Gfx");
 
   ECS_COMPONENT_DEFINE(world, GFX_Camera);
   ECS_COMPONENT_DEFINE(world, GFX_CameraOrtho);

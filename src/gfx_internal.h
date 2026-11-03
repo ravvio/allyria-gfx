@@ -4,6 +4,7 @@
 #define GFX_INTERNAL_DECL
 
 #include <gfx/core.h>
+#include <gfx/render.h>
 #include <gfx/texture.h>
 
 #define GLFW_INCLUDE_NONE
@@ -70,6 +71,7 @@ void gfx_materials_init(void);
 void gfx_materials_terminate(void);
 WGPUBindGroupLayout gfx_material_layout_create(uint32_t uniform_size,
                                                uint32_t texture_count);
+const GFX_Shader *gfx_shader_fullscreen(void);
 
 #ifdef GFX_NDEBUG
 #define GLFWCall(x) x;

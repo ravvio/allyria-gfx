@@ -12,6 +12,8 @@ typedef struct {
   const GFX_Shader *shader;
   WGPUBuffer buffer;
   WGPUBindGroup group;
+  const GFX_Texture2D *textures[GFX_MATERIAL_MAX_TEXTURES];
+  WGPUTextureView views[GFX_MATERIAL_MAX_TEXTURES];
 } GFX_Material;
 
 // uniform_data has the shader's uniform_size bytes (can be NULL to zero it),
@@ -24,7 +26,7 @@ void gfx_material_destroy(const GFX_Material *material);
 // Update the uniform, the last value of the frame wins
 void gfx_material_set_uniform(const GFX_Material *material, const void *data);
 // Use the material for the next draws of the frame
-void gfx_material_bind(const GFX_Material *material);
+void gfx_material_bind(GFX_Material *material);
 
 // Built-in unlit shader for GFX_Vertex3D meshes
 typedef struct {

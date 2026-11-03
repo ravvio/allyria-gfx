@@ -157,6 +157,24 @@ void gfx_texture2d_destroy(const GFX_Texture2D *texture) {
   }
 }
 
+// Allocate color and depth textures of target
+static void _gfx_render_texture_alloc(GFX_RenderTexture *target, int width,
+                                      int height) {
+  WGPUTextureDescriptor desc = WGPU_TEXTURE_DESCRIPTOR_INIT;
+  desc.usage =
+      WGPUTextureUsage_RenderAttachment | WGPUTextureUsage_TextureBinding;
+  desc.dimension = WGPUTextureDimension_2D;
+  desc.size = (WGPUExtent3D){width, height, 1};
+  desc.format = _gfx.surface_format;
+
+  target->texture.width = width;
+  target->texture.height = height;
+  target->texture.texture = wgpuDeviceCreateTexture(_gfx.device, &desc);
+  target->texture.view = wgpuTextureCreateView(target->texture.texture, NULL);
+  target->depth = gfx_depth_texture_create(width, height);
+  target->depth_view = wgpuTextureCreateView(target->depth, NULL);
+}
+
 // Create a texture that views can draw into
 GFX_RenderTexture gfx_render_texture_create(int width, int height,
                                             enum GFX_TextureFilter filter) {
@@ -166,24 +184,35 @@ GFX_RenderTexture gfx_render_texture_create(int width, int height,
     return target;
   }
 
-  WGPUTextureDescriptor desc = WGPU_TEXTURE_DESCRIPTOR_INIT;
-  desc.usage =
-      WGPUTextureUsage_RenderAttachment | WGPUTextureUsage_TextureBinding;
-  desc.dimension = WGPUTextureDimension_2D;
-  desc.size = (WGPUExtent3D){width, height, 1};
-  desc.format = _gfx.surface_format;
-  WGPUTexture texture = wgpuDeviceCreateTexture(_gfx.device, &desc);
+  _gfx_render_texture_alloc(&target, width, height);
+  target.texture.sampler = _gfx_sampler_create(filter, GFX_WRAP_CLAMP_EDGE, 1);
 
-  target.texture = (GFX_Texture2D){
-      .width = width,
-      .height = height,
-      .texture = texture,
-      .view = wgpuTextureCreateView(texture, NULL),
-      .sampler = _gfx_sampler_create(filter, GFX_WRAP_CLAMP_EDGE, 1),
-  };
-  target.depth = gfx_depth_texture_create(width, height);
-  target.depth_view = wgpuTextureCreateView(target.depth, NULL);
   return target;
+}
+
+void gfx_render_texture_resize(GFX_RenderTexture *target, int width,
+                               int height) {
+  if (!target->texture.texture) {
+#if GFX_VERBOSE
+    fprintf(stderr, "[e] missing target texture\n");
+#endif
+    return;
+  }
+  if (width <= 0 || height <= 0) {
+    return;
+  }
+  if (width == target->texture.width && height == target->texture.height) {
+    return;
+  }
+
+  // Release old
+  wgpuTextureViewRelease(target->texture.view);
+  wgpuTextureRelease(target->texture.texture);
+  wgpuTextureViewRelease(target->depth_view);
+  wgpuTextureRelease(target->depth);
+
+  // Allocate new
+  _gfx_render_texture_alloc(target, width, height);
 }
 
 void gfx_render_texture_destroy(const GFX_RenderTexture *target) {

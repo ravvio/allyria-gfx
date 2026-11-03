@@ -73,6 +73,9 @@ typedef struct {
 } GFX_RenderBatch;
 extern ECS_COMPONENT_DECLARE(GFX_RenderBatch);
 
+// Tag for viewport that fit the surface
+extern ECS_TAG_DECLARE(GfxFitSurface);
+
 void gfx_viewport_register(ecs_world_t *world);
 
 // Engine

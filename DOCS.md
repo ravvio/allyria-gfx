@@ -10,7 +10,7 @@ references behind the design in `SOURCES.md`.
 game                 examples/*.c, links `gfx`, includes <gfx/gfx.h>
   │
 ECS modules          GfxEngine, GfxRenderer (windows, phases, viewports),
-  │                  GfxTransform, GfxCamera, GfxSprite
+  │                  GfxTransform, GfxCamera, GfxSprite, GfxPostEffect
   │                  use only the low-level API, never wgpu* directly
 low-level API        src/graphics/: device, windows, frames and views,
   │                  buffers, shaders, pipelines, uniforms, materials,
@@ -107,9 +107,11 @@ window (`src/renderer/gfx_surface.c`); setting it again keeps the window.
 
 ## Viewports and render batches
 
-A viewport is an entity with `GFX_Viewport`: a camera, where it draws (a
-window's `surface`, or a render `texture`), a `rect` in fractions of the
-target from the top left, and an `order`. Its children with
+A viewport is an entity with `GFX_Viewport`: a camera (0 for none, then the
+view-projection is the identity), where it draws (a window's `surface`, or a
+render `texture`; with both, it draws into the texture and the surface only
+gives the size for `GfxFitSurface`), a `rect` in fractions of the target from
+the top left, and an `order`. Its children with
 `GFX_RenderBatch` are its renderers, drawn in the order they were added.
 
 The viewport loop (`src/renderer/gfx_viewport.c`), once per frame:
@@ -200,6 +202,75 @@ GFX_Sprite s = gfx_sprite_create(&screen.texture, 0, 0, 160, 120);
   (`GFX_SpriteBatch.tag`) so the sprite showing the texture isn't drawn into
   it. `examples/engine_render_target.c` is the full example.
 
+### Following a window's size
+
+`gfx_render_texture_resize(&rt, width, height)` recreates the color and depth
+textures in place: `rt` keeps its address, so every pointer to it stays valid,
+and the sampler is kept. It does nothing for the same size or a size of 0
+(minimized windows).
+
+To keep a texture at a window's size, tag the viewport **drawing into** it
+with `GfxFitSurface` and set its `surface` to that window. A system in
+`GfxPreRender` resizes the texture before any view draws:
+
+```c
+ecs_set(world, scene_view, GFX_Viewport,
+        {.camera = scene_cam, .texture = &screen, .surface = window,
+         .rect = {0, 0, 1, 1}});
+ecs_add(world, scene_view, GfxFitSurface);
+```
+
+Like Godot's `SubViewportContainer.stretch`. The size is the window size in
+screen coordinates, so on a 2× screen the texture has half the window's
+pixels per axis.
+
+Materials notice the new texture by themselves (see "Shaders and materials").
+
+## Post-processing
+
+A post effect is a render batch that draws one fullscreen triangle with a
+material sampling a render texture (`src/post/gfx_post.c`). The usual setup:
+the scene viewport draws into a render texture, and a viewport without camera
+draws the effect into the window (`examples/engine_post_processing.c`).
+
+```c
+GFX_Shader desaturate = gfx_shader_create("./assets/desaturate.wgsl",
+                                          sizeof(float), 1);
+float strength = 0.5f;
+const GFX_Texture2D *textures[] = {&screen.texture};
+GFX_PostEffect effect = gfx_post_effect_create(&desaturate, &strength, textures);
+
+ecs_entity_t post_view = ecs_new(world); // no camera: identity view-projection
+ecs_set(world, post_view, GFX_Viewport, {.surface = window, .rect = {0, 0, 1, 1}});
+ecs_set_ptr(world, ecs_new_w_pair(world, EcsChildOf, post_view),
+            GFX_PostEffect, &effect);
+...
+gfx_post_effect_destroy(&effect);
+```
+
+The effect shader has only `frag_main`. The engine's vertex stage
+(`src/graphics/fullscreen.wgsl`) outputs the uv, (0, 0) at the top left:
+
+```wgsl
+@group(2) @binding(0) var<uniform> strength: f32;
+@group(2) @binding(1) var tex: texture_2d<f32>;
+@group(2) @binding(2) var tex_sampler: sampler;
+
+@fragment
+fn frag_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+    let color = textureSample(tex, tex_sampler, uv);
+    let luma = dot(color.rgb, vec3f(0.2126, 0.7152, 0.0722));
+    return vec4f(mix(color.rgb, vec3f(luma), strength), color.a);
+}
+```
+
+- `GFX_PostEffect` adds its own `GFX_RenderBatch` (an `on_add` hook), so the
+  entity only needs the effect.
+- Chains are more render textures and viewports, ordered by `order`.
+- To keep the effect at the window's size, tag the **scene** viewport (the one
+  drawing into the render texture) with `GfxFitSurface`, not the effect's
+  viewport.
+
 ## Sprites
 
 `GFX_Sprite` (an atlas rect and a size in pixels) + `GFX_Transform` +
@@ -211,8 +282,8 @@ GFX_Sprite s = gfx_sprite_create(&screen.texture, 0, 0, 160, 120);
 3. upload one instance buffer, owned by the batch;
 4. one instanced draw per run of sprites sharing a texture.
 
-The shared shader, pipeline and per-texture materials live in the
-`GFX_SpriteRenderer` singleton. Sprites aren't depth tested: layers decide what
+The shared shader, pipeline and per-texture materials (keyed by
+`const GFX_Texture2D *`) live in the `GFX_SpriteRenderer` singleton. Sprites aren't depth tested: layers decide what
 is on top.
 
 ## Low-level API
@@ -271,18 +342,26 @@ GFX_Pipeline pipeline = gfx_pipeline_create(&shader, gfx_geometry3d_layout());
 
 - `0, 0` means no material (no `@group(2)`).
 - Missing textures (NULL or failed loads) are white.
-- A material keeps a pointer to its shader: the shader must outlive it and not
-  move.
+- A material keeps pointers to its shader and its textures: they must outlive
+  it and not move.
+- Materials follow their textures: `gfx_material_bind` rebuilds the bind group
+  when a texture's view changed (a resized render texture), keeping the
+  uniform buffer. That's why it takes a non-const `GFX_Material *`.
 - `gfx_shader_unlit()` is the built-in unlit shader for `GFX_Vertex3D` meshes,
   with `GFX_UnlitUniform`.
 - A pipeline = shader + vertex layout + the graphics features enabled when it
   was created + the window format, so create it after the first window.
+- `gfx_pipeline_fullscreen_create(&shader)` takes no vertex buffers: the vertex
+  stage is the engine's fullscreen triangle, the fragment stage and material
+  come from `shader`. Draw it with `gfx_draw_instanced(3, 1, 0)`.
 
 ## Rules
 
 - **Lifetimes.** Sprites, materials and viewports hold raw pointers (textures,
   shaders, render textures). What they point at must outlive them and not
   move, so don't point into component storage.
+- **Names.** Modules don't call `ecs_set_name_prefix`, so entities keep the
+  names used in C (`GfxFitSurface`) and query strings find them.
 - **Per-view data.** Batches run once per viewport. A buffer written each frame
   must belong to the batch, or every view sees the last write.
 - **Systems.** Don't keep pointers to component storage across phases: flecs
@@ -290,4 +369,5 @@ GFX_Pipeline pipeline = gfx_pipeline_create(&shader, gfx_geometry3d_layout());
 - **Browser.** No blocking loops (use `gfx_run`), no extra blocking waits, one
   window. Apps package their assets with `--preload-file`.
 - **Shaders the engine owns** live next to their code and are compiled in with
-  `#embed` (`src/sprite/sprite.wgsl`, `src/graphics/unlit.wgsl`).
+  `#embed` (`src/sprite/sprite.wgsl`, `src/graphics/unlit.wgsl`,
+  `src/graphics/fullscreen.wgsl`).

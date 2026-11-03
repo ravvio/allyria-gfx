@@ -10,10 +10,18 @@
 // Used for missing textures
 static GFX_Texture2D _white;
 
+// Default unlit shader
 static GFX_Shader _unlit;
 
 static const char _gfx_unlit_wgsl[] = {
 #embed "unlit.wgsl"
+    , 0};
+
+// Fullscreen vertex shader
+static GFX_Shader _fullscreen;
+
+static const char _gfx_fullscreen_wgsl[] = {
+#embed "fullscreen.wgsl"
     , 0};
 
 // WGSL uniform structs are sized in multiples of 16 bytes
@@ -70,35 +78,33 @@ WGPUBindGroupLayout gfx_material_layout_create(uint32_t uniform_size,
 // Material
 // ============================================================================
 
-GFX_Material gfx_material_create(const GFX_Shader *shader,
-                                 const void *uniform_data,
-                                 const GFX_Texture2D *const *textures) {
-  GFX_Material material = {.shader = shader};
-  if (!shader->material_layout) {
-    fprintf(stderr, "[e] shader %s has no materials\n", shader->label);
-    return material;
+// Build the binding group of the material
+static void _gfx_material_group_build(GFX_Material *material) {
+  // Release if already binded
+  if (material->group) {
+    wgpuBindGroupRelease(material->group);
   }
 
+  // Create group entries
   WGPUBindGroupEntry entries[1 + 2 * GFX_MATERIAL_MAX_TEXTURES];
   size_t count = 0;
 
-  if (shader->uniform_size > 0) {
-    WGPUBufferDescriptor buffer_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
-    buffer_desc.usage = WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst;
-    buffer_desc.size = _gfx_uniform_buffer_size(shader->uniform_size);
-    material.buffer = wgpuDeviceCreateBuffer(_gfx.device, &buffer_desc);
-    if (uniform_data) {
-      gfx_material_set_uniform(&material, uniform_data);
-    }
-
+  // Uniform buffer
+  if (material->buffer) {
     entries[count] = WGPU_BIND_GROUP_ENTRY_INIT;
     entries[count].binding = 0;
-    entries[count].buffer = material.buffer;
+    entries[count].buffer = material->buffer;
     count++;
   }
 
+  // Textures
+  const GFX_Shader *shader = material->shader;
   for (uint32_t i = 0; i < shader->texture_count; i++) {
-    const GFX_Texture2D *texture = textures ? textures[i] : NULL;
+    const GFX_Texture2D *texture = material->textures[i];
+
+    // View of the texture we build the material with
+    material->views[i] = texture ? texture->view : NULL;
+    // Default to white
     if (texture == NULL || texture->view == NULL) {
       texture = &_white;
     }
@@ -114,12 +120,41 @@ GFX_Material gfx_material_create(const GFX_Shader *shader,
     count++;
   }
 
+  // Create and assign group
   WGPUBindGroupDescriptor desc = WGPU_BIND_GROUP_DESCRIPTOR_INIT;
   desc.layout = shader->material_layout;
   desc.entryCount = count;
   desc.entries = entries;
-  material.group = wgpuDeviceCreateBindGroup(_gfx.device, &desc);
+  material->group = wgpuDeviceCreateBindGroup(_gfx.device, &desc);
+}
 
+GFX_Material gfx_material_create(const GFX_Shader *shader,
+                                 const void *uniform_data,
+                                 const GFX_Texture2D *const *textures) {
+  GFX_Material material = {.shader = shader};
+  if (!shader->material_layout) {
+    fprintf(stderr, "[e] shader %s has no materials\n", shader->label);
+    return material;
+  }
+
+  // Assign uniform buffer
+  if (shader->uniform_size > 0) {
+    WGPUBufferDescriptor buffer_desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+    buffer_desc.usage = WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst;
+    buffer_desc.size = _gfx_uniform_buffer_size(shader->uniform_size);
+    material.buffer = wgpuDeviceCreateBuffer(_gfx.device, &buffer_desc);
+    if (uniform_data) {
+      gfx_material_set_uniform(&material, uniform_data);
+    }
+  }
+
+  // Assign textures
+  for (uint32_t i = 0; i < shader->texture_count; i++) {
+    material.textures[i] = textures ? textures[i] : NULL;
+  }
+
+  // Build and return
+  _gfx_material_group_build(&material);
   return material;
 }
 
@@ -141,13 +176,24 @@ void gfx_material_set_uniform(const GFX_Material *material, const void *data) {
 }
 
 // Use the material for the next draws
-void gfx_material_bind(const GFX_Material *material) {
-  if (_gfx.pass && material->group) {
-    wgpuRenderPassEncoderSetBindGroup(_gfx.pass, 2, material->group, 0, NULL);
+void gfx_material_bind(GFX_Material *material) {
+  if (!_gfx.pass || !material->group) {
+    return;
   }
+  // Check if textures changed and material needs rebuilding
+  for (uint32_t i = 0; i < material->shader->texture_count; i++) {
+    const GFX_Texture2D *texture = material->textures[i];
+    if ((texture ? texture->view : NULL) != material->views[i]) {
+      _gfx_material_group_build(material);
+      break;
+    }
+  }
+  wgpuRenderPassEncoderSetBindGroup(_gfx.pass, 2, material->group, 0, NULL);
 }
 
 const GFX_Shader *gfx_shader_unlit(void) { return &_unlit; }
+
+const GFX_Shader *gfx_shader_fullscreen(void) { return &_fullscreen; }
 
 // ============================================================================
 // Init
@@ -159,9 +205,13 @@ void gfx_materials_init(void) {
                                 GFX_WRAP_REPEAT);
   _unlit = gfx_shader_create_wgsl("unlit.wgsl", _gfx_unlit_wgsl,
                                   sizeof(GFX_UnlitUniform), 1);
+  _fullscreen =
+      gfx_shader_create_wgsl("fullscreen.wgsl", _gfx_fullscreen_wgsl, 0, 0);
 }
 
 void gfx_materials_terminate(void) {
+  gfx_shader_destroy(&_fullscreen);
+  memset(&_fullscreen, 0, sizeof(_fullscreen));
   gfx_shader_destroy(&_unlit);
   memset(&_unlit, 0, sizeof(_unlit));
   gfx_texture2d_destroy(&_white);

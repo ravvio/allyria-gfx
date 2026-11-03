@@ -1,6 +1,7 @@
 // Instanced sprites: sorted by layer and texture, drawn with one draw per run
 // of sprites sharing a texture
 
+#include "gfx/texture.h"
 #include <gfx/engine.h>
 #include <gfx/sprite.h>
 #include <gfx/transform.h>
@@ -22,7 +23,7 @@ struct _GFX_SpriteDraw {
 };
 
 struct _GFX_SpriteMaterial {
-  WGPUTextureView key;
+  const GFX_Texture2D *key;
   GFX_Material value;
 };
 
@@ -54,14 +55,14 @@ GFX_Sprite gfx_sprite_create(const GFX_Texture2D *texture, int offset_x,
 // *** SPRITE RENDERER ***
 
 // Material of a texture, created on first use
-static const GFX_Material *_gfx_sprite_material(GFX_SpriteRenderer *sr,
-                                                const GFX_Texture2D *texture) {
-  ptrdiff_t i = hmgeti(sr->materials, texture->view);
+static GFX_Material *_gfx_sprite_material(GFX_SpriteRenderer *sr,
+                                          const GFX_Texture2D *texture) {
+  ptrdiff_t i = hmgeti(sr->materials, texture);
   if (i < 0) {
     const GFX_Texture2D *textures[] = {texture};
     GFX_Material material = gfx_material_create(sr->shader, NULL, textures);
-    hmput(sr->materials, texture->view, material);
-    i = hmgeti(sr->materials, texture->view);
+    hmput(sr->materials, texture, material);
+    i = hmgeti(sr->materials, texture);
   }
   return &sr->materials[i].value;
 }
@@ -225,7 +226,6 @@ static void _gfx_sprite_batch_on_add(ecs_iter_t *it) {
 
 void GfxSpriteImport(ecs_world_t *world) {
   ECS_MODULE(world, GfxSprite);
-  ecs_set_name_prefix(world, "Gfx");
 
   ECS_COMPONENT_DEFINE(world, GFX_Sprite);
   ECS_COMPONENT_DEFINE(world, GFX_SpriteLayer);
