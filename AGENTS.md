@@ -37,16 +37,19 @@ cd build/examples && ./engine_sprites
 |---|---|
 | `include/gfx/gfx.h` | Includes every feature header, what the examples use |
 | `include/gfx/core.h` | `GFX_Error`, color types, cglm (with `CGLM_FORCE_DEPTH_ZERO_TO_ONE`) |
-| `include/gfx/graphics.h` | Device init/terminate, graphics features |
+| `include/gfx/graphics.h` | Device init/terminate, graphics features, limits (device, adapter, required) |
+| `include/gfx/compute.h` | Storage buffers, compute shaders, dispatch sessions |
 | `include/gfx/window.h` | Window, frame begin/end, clear color |
 | `include/gfx/render.h` | Buffers, vertex layout, shaders, pipelines, view-projection/model uniforms, draws, 2D/3D geometry |
 | `include/gfx/texture.h`, `material.h` | Textures with samplers, render textures; materials (a shader + values) and the built-in unlit shader |
 | `include/gfx/engine.h` | Settings, `gfx_init`/`gfx_terminate`/`gfx_run`, surface, render phases, viewports and render batches |
 | `include/gfx/transform.h`, `camera.h`, `sprite.h` | ECS modules |
 | `src/gfx_internal.h` | Private to the library: shared WebGPU state (`_gfx`), GLFW, `GLFWCall`, internal init functions |
-| `src/graphics/gfx_window.c` | WebGPU instance/adapter/device, window + surface + depth buffer, frame begin/end, views (one render pass each) |
-| `src/graphics/gfx_buffers.c` | Vertex/index buffers, vertex layout, draw calls |
-| `src/graphics/gfx_shader.c` | WGSL shader modules, render pipelines |
+| `src/graphics/gfx_graphics.c` | WebGPU instance/adapter/device, the `_gfx` state, limits, `gfx_wait` |
+| `src/graphics/gfx_window.c` | Window + surface + depth buffer, frame begin/end, views (one render pass each) |
+| `src/graphics/gfx_buffers.c` | Vertex/index/storage buffers, vertex layout, draw calls, readback |
+| `src/graphics/gfx_shader.c` | WGSL shader modules, render pipelines, compute shaders (module + pipeline) |
+| `src/graphics/gfx_compute.c` | Dispatch sessions: recorded dispatches, uniform arena, per-session bind groups, workgroup split |
 | `src/graphics/gfx_uniforms.c` | Shared bind group/pipeline layouts, per-frame matrix arena (view-projections and models) |
 | `src/graphics/gfx_texture.c` | RGBA8 textures (from pixels or `stb_image`) with their sampler, CPU mipmaps; render textures (window format + own depth buffer) |
 | `src/graphics/gfx_material.c`, `unlit.wgsl`, `fullscreen.wgsl` | Material bind group layouts (built for shaders), materials, white fallback texture, the built-in unlit shader and the fullscreen vertex stage (embedded with `#embed`) |
@@ -85,6 +88,13 @@ cd build/examples && ./engine_sprites
     - pipelines take the shader and the vertex layout: `gfx_pipeline_create(&shader, vertex_layout)`.
   - Never `writeBuffer` per-draw data into one shared buffer region: every draw would see the last value. Renderers run once per viewport, so buffers they write each frame belong to the renderer entity (each `GFX_SpriteBatch` has its own instance buffer).
 - Instanced data (sprites) uses a vertex buffer with `GFX_VertexLayout.step = WGPUVertexStepMode_Instance` and `gfx_draw_instanced`.
+- Compute follows its own fixed contract, shaped like materials:
+  - entry point `comp_main`; one group, `@group(0)`: binding 0 the uniform (only if `uniform_size > 0`, at most 256 bytes, dynamic offset), storage buffer *i* at binding `1+i` (`read_write`), declared with `gfx_compute_shader_create(path, uniform_size, storage_count)`;
+  - a compute shader owns its pipeline (no vertex layout or window format involved);
+  - `gfx_compute_dispatch` only records; `gfx_compute_end` uploads the session's uniforms (one 256-byte slot per dispatch), encodes one compute pass and submits it on its own. Called before `GfxEndRender`, its work runs before the frame's;
+  - buffers are bytes plus usage, as in WebGPU, sokol_gfx and Godot (`SOURCES.md`, "Buffers"): no buffer stores a layout. Vertex layouts live in pipelines, storage structure in WGSL. A storage buffer created with `vertex` is drawn through `gfx_storage_buffer_as_vertex`; WGSL pads `vec3f` to 16 bytes while vertex layouts pack tightly, so drawn structs use `f32`/`vec2f`/`vec4f` fields.
+- Device limits are the WebGPU defaults unless a game asks: `gfx_graphics_require_limits` before `gfx_graphics_init`, checked against `gfx_graphics_adapter_limits()` (which works before init).
+- Every WebGPU struct starts from its `_INIT` macro (`WGPU_LIMITS_INIT`, `WGPU_VERTEX_BUFFER_LAYOUT_INIT`, ...): most have a `nextInChain` pointer that Dawn follows.
 - Coordinates: clip depth is `[0, 1]` (`CGLM_FORCE_DEPTH_ZERO_TO_ONE` is defined in `gfx_common.h`, so cglm projections match), front faces are counter-clockwise, texture origin is top-left.
 - Logging: `fprintf(stderr, "[i] ...")` for info, `"[e] ..."` for errors. Per-frame logs only under `#ifdef GFX_VERBOSE`.
 - Errors: return `GFX_Error` (`GFX_ERR_OK` == 0). Wrap GLFW calls in `GLFWCall(...)` (compiled out with `GFX_NDEBUG`). WebGPU errors come from the device's uncaptured-error callback.
@@ -126,7 +136,7 @@ Systems that depend on each other go in different phases, not in declaration ord
 
 Every render pass has a `Depth24Plus` depth attachment, owned by its window or render texture (windows recreate theirs on resize). Every pipeline therefore declares a depth state; without `GFX_GRAPHICS_FEATURE_DEPTH_TESTING` it uses compare `Always` with writes off. Every view starts its own render pass (color loaded, depth cleared), so overlapping viewports don't share depth.
 
-WebGPU objects (instance, adapter, device, queue, current frame's encoder/pass, windows begun this frame) live in the `_gfx` struct (`gfx_internal.h`, defined in `gfx_window.c`); each window keeps its image of the frame. A window can be skipped for a frame (minimized, surface outdated): `gfx_frame_window_begin` returns false, its views don't begin, and draw code must handle a NULL render pass.
+WebGPU objects (instance, adapter, device, queue, current frame's encoder/pass, windows begun this frame) live in the `_gfx` struct (`gfx_internal.h`, defined in `gfx_graphics.c`); each window keeps its image of the frame. A window can be skipped for a frame (minimized, surface outdated): `gfx_frame_window_begin` returns false, its views don't begin, and draw code must handle a NULL render pass.
 
 ## Targets
 
@@ -138,7 +148,7 @@ Native is the default. Configuring with `emcmake cmake` builds for the browser (
 - Only use the standard `webgpu.h` API. Code for one target goes behind `#ifdef __EMSCRIPTEN__` / `#ifndef __EMSCRIPTEN__`, kept inside `src/graphics/` or `gfx_run`.
 - Engine code must work in the browser:
   - **No blocking main loop.** Use `gfx_run`. The `graphics_*` examples have their own loop, so only the `engine_*` examples are built for the browser (except `engine_windows`).
-  - **Adapter/device requests are async.** Init waits on them with `wgpuInstanceWaitAny` (instance feature `TimedWaitAny`), which needs `-sASYNCIFY` in the browser. Don't add other blocking waits.
+  - **Adapter/device requests are async.** Init waits on them with `gfx_wait` (`wgpuInstanceWaitAny`, instance feature `TimedWaitAny`), which needs `-sASYNCIFY` in the browser. The only other blocking wait is storage readback (`gfx_storage_buffer_read`, a buffer map); don't add more.
   - **No `wgpuSurfacePresent` / `wgpuInstanceProcessEvents`** in the browser (it presents on its own).
 - Browser flags live on the library's targets, so consumers get them by linking `gfx`:
   - `glfw`: Emscripten's `contrib.glfw3` port; the built-in `-sUSE_GLFW=3` is GLFW 3.2 and lacks `glfwGetError`.

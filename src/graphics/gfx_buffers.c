@@ -1,11 +1,15 @@
-// Methods to create and draw WebGPU vertex and index buffers
+// Methods to create and draw WebGPU vertex, index and storage buffers
 
 #include "gfx_internal.h"
 #include <assert.h>
+#include <gfx/compute.h>
+#include <gfx/graphics.h>
 #include <gfx/render.h>
+#include <stdio.h>
+#include <string.h>
 
 // Create a GPU buffer and upload data to it if not NULL
-static WGPUBuffer _gfx_buffer_create(WGPUBufferUsage usage, uint32_t size,
+static WGPUBuffer _gfx_buffer_create(WGPUBufferUsage usage, uint64_t size,
                                      const void *data) {
   // Queue writes need 4 byte aligned sizes
   assert(size % 4 == 0);
@@ -18,6 +22,102 @@ static WGPUBuffer _gfx_buffer_create(WGPUBufferUsage usage, uint32_t size,
     wgpuQueueWriteBuffer(_gfx.queue, buffer, 0, data, size);
   }
   return buffer;
+}
+
+// ============================================================================
+// Storage Buffer
+// ============================================================================
+
+// Create a storage buffer of size bytes
+GFX_StorageBuffer gfx_storage_buffer_create(uint64_t size, bool vertex) {
+  GFX_StorageBuffer sb = {0};
+  uint64_t max = gfx_graphics_limits().max_buffer_size;
+  if (size > max) {
+    fprintf(stderr,
+            "[e] storage buffer of %llu bytes, the device allows %llu\n",
+            (unsigned long long)size, (unsigned long long)max);
+    return sb;
+  }
+
+  // CopySrc for readback
+  WGPUBufferUsage usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopySrc;
+  if (vertex) {
+    usage |= WGPUBufferUsage_Vertex;
+  }
+  sb.buffer = _gfx_buffer_create(usage, size, NULL);
+  sb.size = size;
+  return sb;
+}
+
+// Write size bytes of data at offset
+void gfx_storage_buffer_write(const GFX_StorageBuffer *buffer, uint64_t offset,
+                              const void *data, uint64_t size) {
+  assert(offset % 4 == 0 && size % 4 == 0);
+  assert(offset + size <= buffer->size);
+  wgpuQueueWriteBuffer(_gfx.queue, buffer->buffer, offset, data, size);
+}
+
+static void _gfx_on_buffer_mapped(WGPUMapAsyncStatus status,
+                                  WGPUStringView message, void *userdata1,
+                                  void *userdata2) {
+  (void)userdata2;
+  if (status != WGPUMapAsyncStatus_Success) {
+    fprintf(stderr, "[e] buffer readback failed\n| %.*s\n",
+            (int)(message.length == WGPU_STRLEN ? strlen(message.data)
+                                                : message.length),
+            message.data);
+  }
+  *(bool *)userdata1 = status == WGPUMapAsyncStatus_Success;
+}
+
+// Read size bytes at offset into out
+GFX_Error gfx_storage_buffer_read(const GFX_StorageBuffer *buffer,
+                                  uint64_t offset, void *out, uint64_t size) {
+  // Buffer copies need 4 byte aligned offsets and sizes
+  assert(offset % 4 == 0 && size % 4 == 0);
+  assert(offset + size <= buffer->size);
+
+  // MapRead can't be combined with Storage, so copy into a staging buffer
+  WGPUBufferDescriptor desc = WGPU_BUFFER_DESCRIPTOR_INIT;
+  desc.usage = WGPUBufferUsage_MapRead | WGPUBufferUsage_CopyDst;
+  desc.size = size;
+  WGPUBuffer staging = wgpuDeviceCreateBuffer(_gfx.device, &desc);
+
+  WGPUCommandEncoder encoder =
+      wgpuDeviceCreateCommandEncoder(_gfx.device, NULL);
+  wgpuCommandEncoderCopyBufferToBuffer(encoder, buffer->buffer, offset, staging,
+                                       0, size);
+  WGPUCommandBuffer commands = wgpuCommandEncoderFinish(encoder, NULL);
+  wgpuQueueSubmit(_gfx.queue, 1, &commands);
+  wgpuCommandBufferRelease(commands);
+  wgpuCommandEncoderRelease(encoder);
+
+  // Waits for the copy, and everything submitted before it
+  bool mapped = false;
+  WGPUBufferMapCallbackInfo callback = WGPU_BUFFER_MAP_CALLBACK_INFO_INIT;
+  callback.mode = WGPUCallbackMode_WaitAnyOnly;
+  callback.callback = _gfx_on_buffer_mapped;
+  callback.userdata1 = &mapped;
+  gfx_wait(wgpuBufferMapAsync(staging, WGPUMapMode_Read, 0, size, callback));
+
+  if (mapped) {
+    memcpy(out, wgpuBufferGetConstMappedRange(staging, 0, size), size);
+    wgpuBufferUnmap(staging);
+  }
+  wgpuBufferRelease(staging);
+  return mapped ? GFX_ERR_OK : GFX_ERR_WGPU;
+}
+
+// The same buffer as vertices, described by the drawing pipeline's layout
+GFX_VertexBuffer gfx_storage_buffer_as_vertex(const GFX_StorageBuffer *buffer) {
+  assert(wgpuBufferGetUsage(buffer->buffer) & WGPUBufferUsage_Vertex);
+  return (GFX_VertexBuffer){.buffer = buffer->buffer};
+}
+
+void gfx_storage_buffer_destroy(const GFX_StorageBuffer *buffer) {
+  if (buffer->buffer) {
+    wgpuBufferRelease(buffer->buffer);
+  }
 }
 
 // ============================================================================

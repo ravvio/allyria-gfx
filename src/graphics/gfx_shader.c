@@ -1,5 +1,6 @@
 #include "gfx_internal.h"
 #include <assert.h>
+#include <gfx/compute.h>
 #include <gfx/graphics.h>
 #include <gfx/render.h>
 #include <stdio.h>
@@ -41,10 +42,9 @@ static WGPUStringView _gfx_str(const char *str) {
 // Shader
 // ============================================================================
 
-// Create a shader module from WGSL code, errors are logged by the device
-static GFX_Shader _gfx_shader_create(const char *label, WGPUStringView code,
-                                     uint32_t uniform_size,
-                                     uint32_t texture_count) {
+// Shader module from WGSL code, errors are logged by the device
+static WGPUShaderModule _gfx_module_create(const char *label,
+                                           WGPUStringView code) {
   WGPUShaderSourceWGSL wgsl = WGPU_SHADER_SOURCE_WGSL_INIT;
   wgsl.chain.sType = WGPUSType_ShaderSourceWGSL;
   wgsl.code = code;
@@ -52,10 +52,15 @@ static GFX_Shader _gfx_shader_create(const char *label, WGPUStringView code,
   WGPUShaderModuleDescriptor desc = WGPU_SHADER_MODULE_DESCRIPTOR_INIT;
   desc.nextInChain = &wgsl.chain;
   desc.label = _gfx_str(label);
+  return wgpuDeviceCreateShaderModule(_gfx.device, &desc);
+}
 
+static GFX_Shader _gfx_shader_create(const char *label, WGPUStringView code,
+                                     uint32_t uniform_size,
+                                     uint32_t texture_count) {
   GFX_Shader shader = {
       .label = label,
-      .module = wgpuDeviceCreateShaderModule(_gfx.device, &desc),
+      .module = _gfx_module_create(label, code),
       .uniform_size = uniform_size,
       .texture_count = texture_count,
   };
@@ -219,5 +224,115 @@ void gfx_pipeline_destroy(const GFX_Pipeline *pipeline) {
 void gfx_pipeline_bind(const GFX_Pipeline *pipeline) {
   if (_gfx.pass) {
     wgpuRenderPassEncoderSetPipeline(_gfx.pass, pipeline->pipeline);
+  }
+}
+
+// ============================================================================
+// Compute Shader
+// ============================================================================
+
+// Bindings of @group(0): binding 0 the uniform, storage buffer i at 1+i
+static WGPUBindGroupLayout _gfx_compute_layout_create(uint32_t uniform_size,
+                                                      uint32_t storage_count) {
+  WGPUBindGroupLayoutEntry entries[1 + GFX_COMPUTE_MAX_STORAGE_BUFFERS];
+  size_t count = 0;
+
+  if (uniform_size > 0) {
+    entries[count] = WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT;
+    entries[count].binding = 0;
+    entries[count].visibility = WGPUShaderStage_Compute;
+    entries[count].buffer.type = WGPUBufferBindingType_Uniform;
+    // One slot of the uniform arena per dispatch
+    entries[count].buffer.hasDynamicOffset = WGPU_TRUE;
+    // WGSL uniform structs are sized in multiples of 16 bytes
+    entries[count].buffer.minBindingSize = (uniform_size + 15) & ~15u;
+    count++;
+  }
+
+  for (uint32_t i = 0; i < storage_count; i++) {
+    entries[count] = WGPU_BIND_GROUP_LAYOUT_ENTRY_INIT;
+    entries[count].binding = 1 + i;
+    entries[count].visibility = WGPUShaderStage_Compute;
+    entries[count].buffer.type = WGPUBufferBindingType_Storage;
+    count++;
+  }
+
+  WGPUBindGroupLayoutDescriptor desc = WGPU_BIND_GROUP_LAYOUT_DESCRIPTOR_INIT;
+  desc.entryCount = count;
+  desc.entries = entries;
+  return wgpuDeviceCreateBindGroupLayout(_gfx.device, &desc);
+}
+
+static GFX_ComputeShader _gfx_compute_shader_create(const char *label,
+                                                    WGPUStringView code,
+                                                    uint32_t uniform_size,
+                                                    uint32_t storage_count) {
+  assert(uniform_size % 4 == 0 && uniform_size <= GFX_COMPUTE_MAX_UNIFORM_SIZE);
+  assert(storage_count <= GFX_COMPUTE_MAX_STORAGE_BUFFERS);
+
+  GFX_ComputeShader shader = {
+      .label = label,
+      .module = _gfx_module_create(label, code),
+      .uniform_size = uniform_size,
+      .storage_count = storage_count,
+      .layout = _gfx_compute_layout_create(uniform_size, storage_count),
+  };
+
+  WGPUPipelineLayoutDescriptor layout_desc =
+      WGPU_PIPELINE_LAYOUT_DESCRIPTOR_INIT;
+  layout_desc.bindGroupLayoutCount = 1;
+  layout_desc.bindGroupLayouts = &shader.layout;
+  WGPUPipelineLayout layout =
+      wgpuDeviceCreatePipelineLayout(_gfx.device, &layout_desc);
+
+  WGPUComputePipelineDescriptor desc = WGPU_COMPUTE_PIPELINE_DESCRIPTOR_INIT;
+  desc.label = _gfx_str(label);
+  desc.layout = layout;
+  desc.compute.module = shader.module;
+  desc.compute.entryPoint = _gfx_str("comp_main");
+  shader.pipeline = wgpuDeviceCreateComputePipeline(_gfx.device, &desc);
+
+  // The pipeline keeps what it needs from the layout
+  wgpuPipelineLayoutRelease(layout);
+  return shader;
+}
+
+// Create a compute shader from a WGSL file
+GFX_ComputeShader gfx_compute_shader_create(const char *filepath,
+                                            uint32_t uniform_size,
+                                            uint32_t storage_count) {
+  size_t size;
+  char *source = _gfx_file_read(filepath, &size);
+  if (source == NULL) {
+    GFX_ComputeShader shader = {.label = filepath};
+    return shader;
+  }
+
+  GFX_ComputeShader shader = _gfx_compute_shader_create(
+      filepath, (WGPUStringView){source, size}, uniform_size, storage_count);
+  free(source);
+
+  fprintf(stderr, "[i] loaded compute shader %s\n", filepath);
+  return shader;
+}
+
+// Create a compute shader from WGSL source in memory
+GFX_ComputeShader gfx_compute_shader_create_wgsl(const char *label,
+                                                 const char *source,
+                                                 uint32_t uniform_size,
+                                                 uint32_t storage_count) {
+  return _gfx_compute_shader_create(label, _gfx_str(source), uniform_size,
+                                    storage_count);
+}
+
+void gfx_compute_shader_destroy(const GFX_ComputeShader *shader) {
+  if (shader->pipeline) {
+    wgpuComputePipelineRelease(shader->pipeline);
+  }
+  if (shader->layout) {
+    wgpuBindGroupLayoutRelease(shader->layout);
+  }
+  if (shader->module) {
+    wgpuShaderModuleRelease(shader->module);
   }
 }

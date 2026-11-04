@@ -42,3 +42,5 @@ add_example(engine_viewports)
 add_example(engine_render_target)
 add_example(engine_perspective_camera)
 add_example(engine_post_processing)
+# No window or loop, so it runs in the browser too
+add_example(compute_basic)

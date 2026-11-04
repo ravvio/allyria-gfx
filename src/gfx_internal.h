@@ -4,6 +4,7 @@
 #define GFX_INTERNAL_DECL
 
 #include <gfx/core.h>
+#include <gfx/graphics.h>
 #include <gfx/render.h>
 #include <gfx/texture.h>
 
@@ -35,8 +36,21 @@ typedef struct {
   uint32_t window_count;
   // Frames begun so far
   uint64_t frame;
+
+  // Asked for with gfx_graphics_require_limits, 0 keeps the default
+  GFX_GraphicsLimits required_limits;
 } _GFX_State;
 extern _GFX_State _gfx;
+
+// Block until the future completes (on web this needs ASYNCIFY)
+void gfx_wait(WGPUFuture future);
+
+// Compute
+
+void gfx_compute_terminate(void);
+// Workgroups as x * y with x at most limit
+void gfx_compute_groups_split(uint64_t groups, uint32_t limit, uint32_t *x,
+                              uint32_t *y);
 
 // Depth buffer format of every window
 #define GFX_DEPTH_FORMAT WGPUTextureFormat_Depth24Plus

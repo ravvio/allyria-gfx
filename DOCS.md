@@ -12,9 +12,9 @@ game                 examples/*.c, links `gfx`, includes <gfx/gfx.h>
 ECS modules          GfxEngine, GfxRenderer (windows, phases, viewports),
   │                  GfxTransform, GfxCamera, GfxSprite, GfxPostEffect
   │                  use only the low-level API, never wgpu* directly
-low-level API        src/graphics/: device, windows, frames and views,
-  │                  buffers, shaders, pipelines, uniforms, materials,
-  │                  textures, geometry
+low-level API        src/graphics/: device and limits, windows, frames and
+  │                  views, buffers, shaders, pipelines, uniforms,
+  │                  materials, textures, geometry, compute
 WebGPU + GLFW        Dawn natively, emdawnwebgpu in the browser
 ```
 
@@ -355,6 +355,84 @@ GFX_Pipeline pipeline = gfx_pipeline_create(&shader, gfx_geometry3d_layout());
   stage is the engine's fullscreen triangle, the fragment stage and material
   come from `shader`. Draw it with `gfx_draw_instanced(3, 1, 0)`.
 
+## Compute
+
+Storage buffers, compute shaders and dispatches, with or without a window
+(`include/gfx/compute.h`, `examples/compute_basic.c`).
+
+```c
+gfx_graphics_init(); // no window needed
+
+GFX_StorageBuffer buffer = gfx_storage_buffer_create(count * sizeof(float), false);
+gfx_storage_buffer_write(&buffer, 0, values, count * sizeof(float));
+GFX_ComputeShader scale =
+    gfx_compute_shader_create("./assets/shaders/compute_scale.wgsl", sizeof(float), 1);
+
+uint32_t gx, gy;
+gfx_compute_groups(count, 64, &gx, &gy);
+const GFX_StorageBuffer *buffers[] = {&buffer};
+gfx_compute_begin();
+gfx_compute_dispatch(&scale, buffers, &two, gx, gy, 1);
+gfx_compute_dispatch(&scale, buffers, &three, gx, gy, 1);
+gfx_compute_end();
+
+gfx_storage_buffer_read(&buffer, 0, values, count * sizeof(float)); // blocks
+```
+
+The shader has `comp_main` and its bindings in `@group(0)`, declared when it's
+created (`uniform_size`, `storage_count`):
+
+```wgsl
+@group(0) @binding(0) var<uniform> factor: f32;                      // the uniform
+@group(0) @binding(1) var<storage, read_write> values: array<f32>;  // storage 0
+
+@compute @workgroup_size(64)
+fn comp_main(@builtin(workgroup_id) group: vec3u,
+             @builtin(num_workgroups) groups: vec3u,
+             @builtin(local_invocation_index) local: u32) {
+    let i = (group.y * groups.x + group.x) * 64u + local;
+    if (i >= arrayLength(&values)) { return; }
+    values[i] = values[i] * factor;
+}
+```
+
+- **Storage buffers are bytes.** The WGSL describes their structure; sizes and
+  offsets are in bytes, multiples of 4. Created with `vertex`, a storage buffer
+  can be drawn: `gfx_storage_buffer_as_vertex(&buffer)` gives the same buffer as
+  a `GFX_VertexBuffer`, described by the drawing pipeline's vertex layout.
+  WGSL pads `vec3f` to 16 bytes and vertex layouts pack tightly, so use `f32`,
+  `vec2f` and `vec4f` fields in structs you draw.
+- **A session records, then submits.** `gfx_compute_dispatch` only records the
+  dispatch and copies its uniform (at most 256 bytes); `gfx_compute_end`
+  uploads every uniform once, encodes one compute pass and submits it.
+  Dispatches in a pass see each other's writes, so a chain of dispatches on one
+  buffer is fine. Shaders and buffers must stay alive until `gfx_compute_end`.
+- **With rendering:** call the session before `GfxEndRender` (for example in
+  `GfxPreRender`); its submit runs before the frame's, so the frame can draw
+  the result.
+- **Workgroups:** `gfx_compute_groups(count, workgroup_size, &x, &y)` covers
+  `count` invocations and splits into 2D past the 65535-per-dimension limit;
+  the shader rebuilds its index as above and skips indices past the end.
+- **Readback** blocks until the GPU is done (through a staging buffer, ASYNCIFY
+  in the browser). It waits for everything submitted before it, compute
+  included.
+
+### Limits
+
+The device gets WebGPU's default limits (256 MiB buffers, 128 MiB storage
+bindings). Ask for more only when needed, before `gfx_graphics_init`:
+
+```c
+GFX_GraphicsLimits adapter = gfx_graphics_adapter_limits(); // works before init
+uint64_t size = sizeof(float) * 2 * (1ull << qubits);
+gfx_graphics_require_limits(&(GFX_GraphicsLimits){
+    .max_buffer_size = size, .max_storage_binding_size = size});
+gfx_graphics_init(); // fails, with a log, if the adapter can't provide them
+```
+
+`gfx_graphics_limits()` gives the device's limits after init. A storage buffer
+bigger than `max_buffer_size` isn't created (an error is logged).
+
 ## Rules
 
 - **Lifetimes.** Sprites, materials and viewports hold raw pointers (textures,
@@ -366,6 +444,8 @@ GFX_Pipeline pipeline = gfx_pipeline_create(&shader, gfx_geometry3d_layout());
   must belong to the batch, or every view sees the last write.
 - **Systems.** Don't keep pointers to component storage across phases: flecs
   can move it. Systems that touch WebGPU or GLFW run on the main thread.
+- **WebGPU structs** start from their `_INIT` macro: most have a `nextInChain`
+  pointer that Dawn follows, garbage crashes.
 - **Browser.** No blocking loops (use `gfx_run`), no extra blocking waits, one
   window. Apps package their assets with `--preload-file`.
 - **Shaders the engine owns** live next to their code and are compiled in with

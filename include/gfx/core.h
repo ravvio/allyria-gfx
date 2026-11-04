@@ -14,10 +14,11 @@ typedef vec4 GFX_ColorRGBA;
 
 // Error
 
-typedef uint8_t GFX_Error;
-#define GFX_ERR_OK 0
-#define GFX_ERR_FAILED 1 // Generic error
-#define GFX_ERR_GLFW 2   // External libraries failure
-#define GFX_ERR_WGPU 3   // WebGPU instance / adapter / device failure
+typedef enum : uint8_t {
+  GFX_ERR_OK,
+  GFX_ERR_FAILED, // Generic error
+  GFX_ERR_GLFW,   // External libraries failure
+  GFX_ERR_WGPU,   // WebGPU instance / adapter / device failure
+} GFX_Error;
 
 #endif

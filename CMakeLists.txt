@@ -111,6 +111,7 @@ target_include_directories(stb INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb)
 # Create the GFX library
 set(GFXSOURCES
     ./src/graphics/gfx_glfw.c
+    ./src/graphics/gfx_graphics.c
     ./src/graphics/gfx_window.c
     ./src/graphics/gfx_buffers.c
     ./src/graphics/gfx_shader.c
@@ -119,6 +120,7 @@ set(GFXSOURCES
     ./src/graphics/gfx_geometry3d.c
     ./src/graphics/gfx_texture.c
     ./src/graphics/gfx_material.c
+    ./src/graphics/gfx_compute.c
 
     ./src/renderer/gfx_renderer.c
     ./src/renderer/gfx_viewport.c
@@ -163,4 +165,9 @@ if(GFX_BUILD_TESTS AND NOT EMSCRIPTEN)
   target_include_directories(test_viewport PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
   target_link_libraries(test_viewport PRIVATE glfw gfx)
   add_test(NAME viewport COMMAND test_viewport)
+
+  add_executable(test_compute_groups tests/test_compute_groups.c)
+  target_include_directories(test_compute_groups PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+  target_link_libraries(test_compute_groups PRIVATE glfw gfx)
+  add_test(NAME compute_groups COMMAND test_compute_groups)
 endif()

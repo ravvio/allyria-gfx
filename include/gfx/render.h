@@ -61,12 +61,10 @@ void gfx_vertex_layout_push_f32(GFX_VertexLayout *layout, uint32_t count);
 #define GFX_MATERIAL_MAX_TEXTURES 4
 
 typedef struct {
-  // Shown in error messages, the file path for loaded shaders
   const char *label;
   WGPUShaderModule module;
   uint32_t uniform_size;
   uint32_t texture_count;
-  // NULL without materials
   WGPUBindGroupLayout material_layout;
   WGPUPipelineLayout pipeline_layout;
 } GFX_Shader;

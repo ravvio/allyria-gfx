@@ -8,6 +8,7 @@
 #include <gfx/material.h>
 #include <gfx/post.h>
 #include <gfx/render.h>
+#include <gfx/compute.h>
 #include <gfx/sprite.h>
 #include <gfx/texture.h>
 #include <gfx/transform.h>
