@@ -145,7 +145,9 @@ GFX_Texture2D gfx_texture2d_load(const char *filename,
   GFX_Texture2D tex = gfx_texture2d_create(width, height, data, filter, wrap);
   stbi_image_free(data);
 
+#ifdef GFX_VERBOSE
   fprintf(stderr, "[i] loaded texture %s\n", filename);
+#endif
   return tex;
 }
 

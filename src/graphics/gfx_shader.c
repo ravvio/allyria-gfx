@@ -87,7 +87,9 @@ GFX_Shader gfx_shader_create(const char *filepath, uint32_t uniform_size,
       filepath, (WGPUStringView){source, size}, uniform_size, texture_count);
   free(source);
 
+#ifdef GFX_VERBOSE
   fprintf(stderr, "[i] loaded shader %s\n", filepath);
+#endif
   return shader;
 }
 
@@ -312,7 +314,9 @@ GFX_ComputeShader gfx_compute_shader_create(const char *filepath,
       filepath, (WGPUStringView){source, size}, uniform_size, storage_count);
   free(source);
 
+#ifdef GFX_VERBOSE
   fprintf(stderr, "[i] loaded compute shader %s\n", filepath);
+#endif
   return shader;
 }
 

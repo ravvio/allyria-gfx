@@ -96,7 +96,7 @@ cd build/examples && ./engine_sprites
 - Device limits are the WebGPU defaults unless a game asks: `gfx_graphics_require_limits` before `gfx_graphics_init`, checked against `gfx_graphics_adapter_limits()` (which works before init).
 - Every WebGPU struct starts from its `_INIT` macro (`WGPU_LIMITS_INIT`, `WGPU_VERTEX_BUFFER_LAYOUT_INIT`, ...): most have a `nextInChain` pointer that Dawn follows.
 - Coordinates: clip depth is `[0, 1]` (`CGLM_FORCE_DEPTH_ZERO_TO_ONE` is defined in `gfx_common.h`, so cglm projections match), front faces are counter-clockwise, texture origin is top-left.
-- Logging: `fprintf(stderr, "[i] ...")` for info, `"[e] ..."` for errors. Per-frame logs only under `#ifdef GFX_VERBOSE`.
+- Logging: `fprintf(stderr, "[i] ...")` for info, `"[e] ..."` for errors. Per-frame and per-asset (`loaded ...`) logs only under `#ifdef GFX_VERBOSE`.
 - Errors: return `GFX_Error` (`GFX_ERR_OK` == 0). Wrap GLFW calls in `GLFWCall(...)` (compiled out with `GFX_NDEBUG`). WebGPU errors come from the device's uncaptured-error callback.
 - Dynamic arrays and hashmaps use `stb_ds`. Math uses cglm (`mat4`, `vec3`, `glm_*`).
 - Design decisions based on outside sources (specs, articles, other engines): cite them and add them to `SOURCES.md` (references and a short note on consensus).
