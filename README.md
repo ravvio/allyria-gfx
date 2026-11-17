@@ -1,6 +1,8 @@
-# GFX Engine
+# Allyria GFX Engine
 
-A small C23 game engine library that runs natively and in the browser.
+A small C23 graphics library on WebGPU that runs natively and in the browser.
+It's meant for rendering, GPU compute and simulations, and adds a game engine
+layer on top (ECS, render phases, cameras, sprites, post effects).
 
 Using:
 - [flecs](https://github.com/SanderMertens/flecs) for the ECS
